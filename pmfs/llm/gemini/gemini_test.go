@@ -1,7 +1,6 @@
 package gemini
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,45 +11,23 @@ import (
 	"testing"
 )
 
-// loadEnv reads a .env file in dir and sets env vars.
-func loadEnv(dir string) error {
-	f, err := os.Open(filepath.Join(dir, ".env"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
+func TestRESTClientInitUsesAPIKeyFromEnv(t *testing.T) {
+	key := "test-key"
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", ".env")); err == nil {
+		for _, line := range strings.Split(string(b), "\n") {
+			if strings.HasPrefix(line, "GEMINI_API_KEY=") {
+				key = strings.TrimSpace(strings.TrimPrefix(line, "GEMINI_API_KEY="))
+				break
+			}
 		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		val := strings.Trim(strings.TrimSpace(parts[1]), "\"'")
-		os.Setenv(key, val)
 	}
-	return scanner.Err()
-}
-
-func TestRESTClientInitUsesAPIKeyFromEnvFile(t *testing.T) {
-	dir := t.TempDir()
-	env := "GEMINI_API_KEY=test-key\n"
-	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(env), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	if err := loadEnv(dir); err != nil {
-		t.Fatalf("loadEnv: %v", err)
-	}
+	t.Setenv("GEMINI_API_KEY", key)
 	c := &RESTClient{}
 	if err := c.init(); err != nil {
 		t.Fatalf("init: %v", err)
 	}
-	if c.APIKey != "test-key" {
-		t.Fatalf("expected APIKey 'test-key', got %q", c.APIKey)
+	if c.APIKey != key {
+		t.Fatalf("expected APIKey %q, got %q", key, c.APIKey)
 	}
 }
 
@@ -90,6 +67,56 @@ func TestRESTClientAnalyzeAttachment(t *testing.T) {
 		t.Fatalf("AnalyzeAttachment: %v", err)
 	}
 	if len(reqs) != 1 || reqs[0].Name != "R1" {
+		t.Fatalf("unexpected requirements: %#v", reqs)
+	}
+}
+
+type testClient struct{ name string }
+
+func (t testClient) AnalyzeAttachment(path string) ([]Requirement, error) {
+	return []Requirement{{Name: t.name}}, nil
+}
+
+func TestSetClientSwapsImplementation(t *testing.T) {
+	c1 := testClient{name: "first"}
+	c2 := testClient{name: "second"}
+
+	prev := SetClient(c1)
+	defer SetClient(prev)
+
+	reqs, err := AnalyzeAttachment("p")
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].Name != "first" {
+		t.Fatalf("unexpected requirements from c1: %#v", reqs)
+	}
+
+	prev2 := SetClient(c2)
+	if prev2 != c1 {
+		t.Fatalf("expected previous client to be c1")
+	}
+	reqs, err = AnalyzeAttachment("p")
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].Name != "second" {
+		t.Fatalf("unexpected requirements from c2: %#v", reqs)
+	}
+}
+
+func TestClientFuncAnalyzeAttachment(t *testing.T) {
+	cf := ClientFunc(func(path string) ([]Requirement, error) {
+		if path != "file" {
+			t.Fatalf("unexpected path %q", path)
+		}
+		return []Requirement{{ID: 1, Name: "R"}}, nil
+	})
+	reqs, err := cf.AnalyzeAttachment("file")
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].ID != 1 || reqs[0].Name != "R" {
 		t.Fatalf("unexpected requirements: %#v", reqs)
 	}
 }
