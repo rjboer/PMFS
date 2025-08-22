@@ -55,14 +55,14 @@ go build ./...
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Store as storage package
+    participant PMFS as PMFS package
 
-    Dev->>Store: EnsureLayout()
-    Store-->>Dev: create base folders
-    Dev->>Store: LoadIndex()
-    Store-->>Dev: read index.toml
-    Dev->>Store: AddProduct/AddProject
-    Store-->>Dev: write project.toml
+    Dev->>PMFS: EnsureLayout()
+    PMFS-->>Dev: create base folders
+    Dev->>PMFS: LoadIndex()
+    PMFS-->>Dev: read index.toml
+    Dev->>PMFS: AddProduct/AddProject
+    PMFS-->>Dev: write project.toml
 ```
 
 ## Example Usage
@@ -73,14 +73,31 @@ package main
 import (
     "fmt"
 
-    "github.com/rjboer/PMFS/storage"
+    PMFS "github.com/rjboer/PMFS"
 )
 
 func main() {
-    if err := storage.EnsureLayout(); err != nil {
+    if err := PMFS.EnsureLayout(); err != nil {
         panic(err)
     }
-    idx, _ := storage.LoadIndex()
+    idx, _ := PMFS.LoadIndex()
     fmt.Println(idx.Products)
 }
 ```
+
+## Available Functions
+
+- `EnsureLayout()`
+- `LoadIndex()`
+- `(*Index) AddProduct(name string) error`
+- `(*Index) SaveIndex() error`
+- `(*ProductType) AddProject(idx *Index, projectName string) error`
+- `(*ProjectType) SaveProject() error`
+- `(*ProjectType) LoadProject() error`
+- `(*ProductType) LoadProjects() error`
+- `(*Index) LoadAllProjects() error`
+- `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
+- `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
+
+See [FUNCTIONS.md](FUNCTIONS.md) for detailed descriptions.
+
