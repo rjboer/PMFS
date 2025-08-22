@@ -51,7 +51,7 @@ type ProductType struct {
 // ProjectFile is the project's memory model placeholder.
 type ProjectType struct {
 	ID        int         `json:"id" toml:"id"`
-	productID int         `toml:"productid"`
+	ProductID int         `json:"productid" toml:"productid"`
 	Name      string      `json:"name" toml:"name"`
 	D         ProjectData `json:"projectdata" toml:"projectdata"`
 }
@@ -140,7 +140,7 @@ func LoadIndex() (Index, error) {
 // -----------------------------------------------------------------------------
 
 // AddProduct appends a product to the index and creates its directory skeleton.
-// productID = len(idx.Products) + 1
+// ProductID = len(idx.Products) + 1
 func (idx *Index) AddProduct(name string) error {
 	if name == "" {
 		return errors.New("product name cannot be empty")
@@ -207,7 +207,7 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 
 	addedproject := ProjectType{
 		ID:        newPrjID,
-		productID: prd.ID,
+		ProductID: prd.ID,
 		Name:      projectName,
 	}
 
@@ -226,7 +226,7 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 
 func (prj *ProjectType) SaveProject() error {
 	// Persist index
-	prjDir := projectDir(prj.productID, prj.ID)
+	prjDir := projectDir(prj.ProductID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
 	if err := writeTOML(tomlPath, prj); err != nil {
@@ -238,7 +238,7 @@ func (prj *ProjectType) SaveProject() error {
 // LoadProject loads a single project's TOML for this product.
 func (prj *ProjectType) LoadProject() error {
 
-	prjDir := projectDir(prj.productID, prj.ID)
+	prjDir := projectDir(prj.ProductID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
 	if err := readTOML(tomlPath, prj); err != nil {
@@ -255,7 +255,8 @@ func (prd *ProductType) LoadProjects() error {
 	if prd.Projects == nil || len(prd.Projects) == 0 {
 		return nil
 	}
-	for i, _ := range prd.Projects {
+	for i := range prd.Projects {
+		prd.Projects[i].ProductID = prd.ID
 		err := prd.Projects[i].LoadProject()
 		if err != nil {
 			return err
