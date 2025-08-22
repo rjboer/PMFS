@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
+
+	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
 func TestEnsureLayoutCreatesIndex(t *testing.T) {
@@ -81,6 +83,12 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 }
 
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
+	// mock Gemini client to avoid external calls
+	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+		return nil, nil
+	}))
+	defer gemini.SetClient(orig)
+
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -128,6 +136,9 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if len(prj.D.Attachments) != 1 || prj.D.Attachments[0] != att {
 		t.Fatalf("attachment metadata not recorded: %#v", prj.D.Attachments)
 	}
+	if !att.Analyzed {
+		t.Fatalf("attachment not analyzed")
+	}
 	// ensure metadata persisted to project.toml
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
 	if err := prjReload.LoadProject(); err != nil {
@@ -138,7 +149,66 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 }
 
+func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
+	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
+	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+		return mockReqs, nil
+	}))
+	defer gemini.SetClient(orig)
+
+	dir := t.TempDir()
+	SetBaseDir(dir)
+	if err := EnsureLayout(); err != nil {
+		t.Fatalf("EnsureLayout: %v", err)
+	}
+	idx, err := LoadIndex()
+	if err != nil {
+		t.Fatalf("LoadIndex: %v", err)
+	}
+	if err := idx.AddProduct("prod1"); err != nil {
+		t.Fatalf("AddProduct: %v", err)
+	}
+	idx, err = LoadIndex()
+	if err != nil {
+		t.Fatalf("LoadIndex: %v", err)
+	}
+	prd := &idx.Products[0]
+	if err := prd.AddProject(&idx, "prj1"); err != nil {
+		t.Fatalf("AddProject: %v", err)
+	}
+	prj := &idx.Products[0].Projects[0]
+
+	inputDir := filepath.Join(dir, "input")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatalf("Mkdir input: %v", err)
+	}
+	fname := "sample.txt"
+	src := filepath.Join(inputDir, fname)
+	if err := os.WriteFile(src, []byte("hello"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	att, err := prj.AddAttachmentFromInput(inputDir, fname)
+	if err != nil {
+		t.Fatalf("AddAttachmentFromInput: %v", err)
+	}
+	if !att.Analyzed {
+		t.Fatalf("attachment not analyzed")
+	}
+	if len(prj.D.PotentialRequirements) != len(mockReqs) {
+		t.Fatalf("expected %d potential requirements, got %d", len(mockReqs), len(prj.D.PotentialRequirements))
+	}
+	if prj.D.PotentialRequirements[0].Name != mockReqs[0].Name {
+		t.Fatalf("requirements not appended")
+	}
+}
+
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
+	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+		return nil, nil
+	}))
+	defer gemini.SetClient(orig)
+
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
