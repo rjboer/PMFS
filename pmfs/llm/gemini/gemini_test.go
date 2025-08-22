@@ -1,25 +1,37 @@
 package gemini
 
 import (
-        "bytes"
-        "encoding/json"
-        "os"
-        "path/filepath"
-        "testing"
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
 )
 
 func TestRESTClientInitUsesAPIKeyFromEnv(t *testing.T) {
-        key, ok := os.LookupEnv("GEMINI_API_KEY")
-        if !ok || key == "" {
-                t.Skip("GEMINI_API_KEY not set")
-        }
-        c := &RESTClient{}
-        if err := c.init(); err != nil {
-                t.Fatalf("init: %v", err)
-        }
-        if c.APIKey != key {
-                t.Fatalf("expected APIKey %q, got %q", key, c.APIKey)
-        }
+	//check if we can use the .env
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", ".env")); err == nil {
+		for _, line := range strings.Split(string(b), "\n") {
+			if strings.HasPrefix(line, "GEMINI_API_KEY=") {
+				key := strings.TrimSpace(strings.TrimPrefix(line, "GEMINI_API_KEY="))
+				os.Setenv("GEMINI_API_KEY", key)
+				break
+			}
+		}
+	}
+
+	key, ok := os.LookupEnv("GEMINI_API_KEY")
+	if !ok || key == "" {
+		t.Skip("GEMINI_API_KEY not set")
+	}
+	c := &RESTClient{}
+	if err := c.init(); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if c.APIKey != key {
+		t.Fatalf("expected APIKey %q, got %q", key, c.APIKey)
+	}
 }
 
 type testClient struct{ name string }
@@ -82,34 +94,34 @@ func sameRequirements(a, b []Requirement) bool {
 }
 
 func TestRESTClientAnalyzeAttachmentReal(t *testing.T) {
-        base := filepath.Join("..", "..", "..", "testdata")
-        p1 := filepath.Join(base, "spec1.txt")
-        p2 := filepath.Join(base, "spec2.txt")
+	base := filepath.Join("..", "..", "..", "testdata")
+	p1 := filepath.Join(base, "spec1.txt")
+	p2 := filepath.Join(base, "spec2.txt")
 
-        key := os.Getenv("GEMINI_API_KEY")
-        if key == "" || key == "test-key" {
-                t.Skip("GEMINI_API_KEY not set")
-        }
+	key := os.Getenv("GEMINI_API_KEY")
+	if key == "" || key == "test-key" {
+		t.Skip("GEMINI_API_KEY not set")
+	}
 
-        c := &RESTClient{}
-        r1, err := c.AnalyzeAttachment(p1)
-        if err != nil {
-                t.Fatalf("AnalyzeAttachment(spec1): %v", err)
-        }
-        t.Logf("real Gemini returned for spec1: %#v", r1)
+	c := &RESTClient{}
+	r1, err := c.AnalyzeAttachment(p1)
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment(spec1): %v", err)
+	}
+	t.Logf("real Gemini returned for spec1: %#v", r1)
 
-        r2, err := c.AnalyzeAttachment(p2)
-        if err != nil {
-                t.Fatalf("AnalyzeAttachment(spec2): %v", err)
-        }
+	r2, err := c.AnalyzeAttachment(p2)
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment(spec2): %v", err)
+	}
 
-        t.Logf("real Gemini returned for spec2: %#v", r2)
+	t.Logf("real Gemini returned for spec2: %#v", r2)
 
-        if sameRequirements(r1, r2) {
-                t.Fatalf("expected different requirements for distinct documents")
-        }
+	if sameRequirements(r1, r2) {
+		t.Fatalf("expected different requirements for distinct documents")
+	}
 
-        if _, err := c.AnalyzeAttachment(filepath.Join(base, "sources.txt")); err == nil {
-                t.Fatalf("expected error for unsupported document")
-        }
+	if _, err := c.AnalyzeAttachment(filepath.Join(base, "sources.txt")); err == nil {
+		t.Fatalf("expected error for unsupported document")
+	}
 }
