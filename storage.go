@@ -50,10 +50,13 @@ type ProductType struct {
 
 // ProjectFile is the project's memory model placeholder.
 type ProjectType struct {
-	ID        int         `json:"id" toml:"id"`
-	ProductID int         `json:"productid" toml:"productid"`
-	Name      string      `json:"name" toml:"name"`
-	D         ProjectData `json:"projectdata" toml:"projectdata"`
+	ID        int    `json:"id" toml:"id"`
+	ProductID int    `json:"productid" toml:"productid"`
+	Name      string `json:"name" toml:"name"`
+	// D contains the heavy project data and is stored only in each
+	// project's individual TOML file. The field is skipped when the
+	// index is written to disk so the index remains lightweight.
+	D ProjectData `json:"projectdata" toml:"-"`
 }
 
 type ProjectData struct {
@@ -168,16 +171,9 @@ func (idx *Index) AddProduct(name string) error {
 }
 
 func (idx *Index) SaveIndex() error {
-	// Persist index
-	idx2 := *idx
-	for i, _ := range idx2.Products {
-		for i2, _ := range idx2.Products[i].Projects {
-			//empty out projectdata... otherwise it will be too big.
-			//project specifics are stored in a project
-			idx2.Products[i].Projects[i2].D = ProjectData{}
-		}
-	}
-	if err := writeTOML(indexPath, &idx2); err != nil {
+	// Project data is skipped automatically via struct tags, so the
+	// index can be written directly without making a deep copy.
+	if err := writeTOML(indexPath, idx); err != nil {
 		return fmt.Errorf("write index: %w", err)
 	}
 	return nil
@@ -225,14 +221,29 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 }
 
 func (prj *ProjectType) SaveProject() error {
-	// Persist index
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	if err := os.MkdirAll(prjDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir project dir: %w", err)
 	}
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
-	if err := writeTOML(tomlPath, prj); err != nil {
+	// Use a helper struct so ProjectData is included even though the
+	// field is tagged with toml:"-" in ProjectType.
+	type diskProject struct {
+		ID        int         `toml:"id"`
+		ProductID int         `toml:"productid"`
+		Name      string      `toml:"name"`
+		D         ProjectData `toml:"projectdata"`
+	}
+
+	dp := diskProject{
+		ID:        prj.ID,
+		ProductID: prj.ProductID,
+		Name:      prj.Name,
+		D:         prj.D,
+	}
+
+	if err := writeTOML(tomlPath, &dp); err != nil {
 		return fmt.Errorf("error write-ing project toml: %w", err)
 	}
 	return nil
@@ -240,16 +251,28 @@ func (prj *ProjectType) SaveProject() error {
 
 // LoadProject loads a single project's TOML for this product.
 func (prj *ProjectType) LoadProject() error {
-
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
-	if err := readTOML(tomlPath, prj); err != nil {
+	type diskProject struct {
+		ID        int         `toml:"id"`
+		ProductID int         `toml:"productid"`
+		Name      string      `toml:"name"`
+		D         ProjectData `toml:"projectdata"`
+	}
+
+	var dp diskProject
+	if err := readTOML(tomlPath, &dp); err != nil {
 		if os.IsNotExist(err) {
 			return ErrProjectNotFound
 		}
 		return fmt.Errorf("Error while reading a project, read %s: %w", tomlPath, err)
 	}
+
+	prj.ID = dp.ID
+	prj.ProductID = dp.ProductID
+	prj.Name = dp.Name
+	prj.D = dp.D
 	return nil
 }
 
