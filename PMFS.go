@@ -132,6 +132,7 @@ type Attachment struct {
 	RelPath  string    `json:"rel_path" toml:"rel_path"` // e.g. "attachments/3/spec.pdf"
 	Mimetype string    `json:"mimetype" toml:"mimetype"` // e.g. "application/pdf"
 	AddedAt  time.Time `json:"added_at" toml:"added_at"`
+	Analyzed bool      `json:"analysed" toml:"analysed"`
 }
 
 // ChangeLog records a change made to a requirement.
@@ -553,6 +554,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 		RelPath:  rel,
 		Mimetype: mt,
 		AddedAt:  time.Now(),
+		Analyzed: false,
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 
