@@ -57,12 +57,12 @@ type ProjectType struct {
 }
 
 type ProjectData struct {
-	Scope     string    `json:"scope" toml:"scope"`
-	StartDate time.Time `json:"start_date" toml:"start_date"`
-	EndDate   time.Time `json:"end_date" toml:"end_date"`
-	Status    string    `json:"status" toml:"status"`
-	Priority  string    `json:"priority" toml:"priority"`
-	//	Requirements []Requirement_type `json:"requirements" toml:"requirements"`
+	Scope        string             `json:"scope" toml:"scope"`
+	StartDate    time.Time          `json:"start_date" toml:"start_date"`
+	EndDate      time.Time          `json:"end_date" toml:"end_date"`
+	Status       string             `json:"status" toml:"status"`
+	Priority     string             `json:"priority" toml:"priority"`
+	Requirements []Requirement_type `json:"requirements" toml:"requirements"`
 	//	Attachments  []Attachment       `json:"attachments" toml:"attachments"`
 	// Intelligence holds data extracted from attachments (e.g., screenshots, documents).
 	//	Intelligence []Intelligence `json:"intelligence" toml:"intelligence"`
@@ -74,6 +74,24 @@ type ProjectData struct {
 	//	RequirementRelations  []RequirementRelation `json:"requirement_relations" toml:"requirement_relations"`
 	//	RequirementCategories []string              `json:"requirement_Categories" toml:"requirement_Categories"`
 	FixedCatagories bool `json:"requirement_FixedCatagories" toml:"requirement_FixedCatagories"`
+}
+
+// Requirement represents a confirmed requirement with detailed metadata.
+type Requirement_type struct {
+	ID          int       `json:"id" toml:"id"`
+	Name        string    `json:"name" toml:"name"`
+	Description string    `json:"description" toml:"description"`
+	Priority    int       `json:"priority" toml:"priority"` // 1 (highest) to 8 (lowest)
+	Level       int       `json:"level" toml:"level"`       // Hierarchical level within requirements.
+	Owner       string    `json:"owner" toml:"owner"`       // Consider replacing with a User struct for richer user data.
+	Status      string    `json:"status" toml:"status"`     // e.g., "Draft", "Confirmed"
+	CreatedAt   time.Time `json:"created_at" toml:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" toml:"updated_at"`
+	ParentID    int       `json:"parent_id" toml:"parent_id"` // 0 for top‑level
+	Category    string    `json:"category" toml:"category"`   // e.g., "System Requirements"
+	//History     []ChangeLog `json:"history" toml:"history"`     // Record of changes to the requirement.
+	// Optional: Tags can help with flexible categorization or filtering.
+	//Tags []string `json:"tags,omitempty" toml:"tags"`
 }
 
 // -----------------------------------------------------------------------------
