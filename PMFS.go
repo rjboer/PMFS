@@ -15,6 +15,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	_ "github.com/rjboer/PMFS/internal/config"
+
 )
 
 // -----------------------------------------------------------------------------
@@ -571,6 +573,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 		RelPath:  rel,
 		Mimetype: mt,
 		AddedAt:  time.Now(),
+		Analyzed: false,
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 	ptr := &prj.D.Attachments[len(prj.D.Attachments)-1]

@@ -10,6 +10,7 @@ import (
 )
 
 func TestEnsureLayoutCreatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -22,6 +23,7 @@ func TestEnsureLayoutCreatesIndex(t *testing.T) {
 }
 
 func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -48,6 +50,7 @@ func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
 }
 
 func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -89,6 +92,7 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}))
 	defer gemini.SetClient(orig)
 
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -126,6 +130,10 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
 
+	if att.Analyzed {
+		t.Fatalf("expected Analyzed to default to false")
+	}
+
 	dst := filepath.Join(dir, productsDir, "1", "projects", "1", "attachments", "1", fname)
 	if _, err := os.Stat(dst); err != nil {
 		t.Fatalf("attachment not moved: %v", err)
@@ -146,6 +154,9 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 	if len(prjReload.D.Attachments) != 1 || prjReload.D.Attachments[0].Filename != fname {
 		t.Fatalf("attachment not persisted: %#v", prjReload.D.Attachments)
+	}
+	if prjReload.D.Attachments[0].Analyzed {
+		t.Fatalf("Analyzed flag not persisted as false: %#v", prjReload.D.Attachments[0])
 	}
 }
 
@@ -204,10 +215,14 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 }
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
+
 	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
 		return nil, nil
 	}))
 	defer gemini.SetClient(orig)
+
+
+	t.Setenv("GEMINI_API_KEY", "test-key")
 
 	dir := t.TempDir()
 	SetBaseDir(dir)
