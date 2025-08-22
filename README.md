@@ -25,6 +25,7 @@ PMFS (Product Manager File System) is a lightweight backend for storing and orga
 ## Directory Structure
 
 The backend stores its data in a folder called `database`. Inside it, each product gets its own subdirectory and keeps an `index.toml` of projects.
+The index contains only lightweight metadata (project IDs and names); each project's detailed data lives in its own `project.toml` file.
 
 ```mermaid
 graph TD
