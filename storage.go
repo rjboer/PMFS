@@ -227,6 +227,9 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 func (prj *ProjectType) SaveProject() error {
 	// Persist index
 	prjDir := projectDir(prj.ProductID, prj.ID)
+	if err := os.MkdirAll(prjDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir project dir: %w", err)
+	}
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
 	if err := writeTOML(tomlPath, prj); err != nil {
