@@ -1,0 +1,61 @@
+What is Scenario Planning?
+
+Scenario planning (also called scenario thinking or scenario analysis) is a strategic method for exploring how the future might unfold so organizations can make flexible, long-term choices. It blends hard facts (e.g., demographics, geography, resources) with key driving forces across social, technological, economic, environmental, and political spheres (often summarized as STEEP). The goal isn’t to predict a single future, but to craft several plausible futures and stress-test strategy against them.
+
+How it’s Used
+
+Policy and strategy workshops: Analysts and leaders explore multiple “what-if” futures, often via facilitated exercises or simulation games.
+
+Decision support: Teams examine how competitors, partners, or regulations could behave under different conditions, then adjust plans.
+
+Risk/ops planning: Organizations identify vulnerabilities and design contingency or “PREsponse” protocols before crises hit.
+
+Systems view: Scenario work often incorporates systems thinking to map causal links and feedback loops that can create surprising outcomes.
+
+Why it’s Used
+
+Prepare, don’t predict: Reduces overreliance on trend extrapolations and helps manage uncertainty.
+
+Reveal blind spots: Surfaces uncomfortable but important possibilities, including value shifts, new rules, or breakthrough inventions.
+
+Build robust strategy: Helps choose options that hold up across several futures, not just the most likely one.
+
+Accelerate learning: Clarifies early warning indicators and triggers so teams can pivot sooner.
+
+Famous Use
+
+Royal Dutch Shell popularized modern scenario planning to challenge internal assumptions about external forces and became better prepared for major energy market shifts. Their approach focused on changing mindsets about the outside world before locking in strategy.
+
+Core Steps (for your tool’s workflow)
+
+Define the focal question & scope
+What decision or domain are we exploring (horizon, geography, stakeholders)?
+
+Scan the environment (STEEP)
+Gather facts and signals across social, technological, economic, environmental, and political domains.
+
+Identify driving forces
+List forces shaping the future; note their impact on your focal question and the uncertainty around each.
+
+Prioritize critical uncertainties
+Select the few forces with both high impact and high uncertainty to frame your scenarios.
+
+Build scenario logic
+Combine critical uncertainties into 2–4 distinct, internally coherent worlds (use 2×2 axes or systems-maps/causal loops).
+
+Develop rich narratives
+Flesh out each world: headline events, stakeholder behaviors, market/technology/regulatory conditions, and timeline.
+
+Test implications & options
+For each scenario, ask: What opportunities/risks arise? Which strategies win, fail, or need adaptation?
+
+Define signposts & triggers
+Specify observable indicators that a scenario (or elements of it) is emerging; tie them to preplanned responses.
+
+Stress-test and choose strategies
+Select robust choices (work in most worlds) and contingent moves (activated by triggers).
+
+Monitor & refresh
+Track signposts, update scenarios as conditions change, and iterate decisions accordingly.
+
+Note: Scenarios are plausible stories, not forecasts. Publicized scenarios can influence behavior (and thus outcomes), so treat them as learning tools to build agility—not as predictions.

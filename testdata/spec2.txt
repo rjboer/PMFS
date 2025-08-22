@@ -1,0 +1,97 @@
+# CTO Tool Requirements Document
+
+## Introduction
+
+Modern technology leaders are flooded with choices: frameworks, platforms, vendor solutions, and a never‑ending backlog of product initiatives. Our **CTO Decision Support Toolkit** turns that chaos into clarity by combining two battle‑tested visual frameworks—the **Customer Value Map** (a.k.a. *Value Tree*) and the **Impact‑vs‑Effort Matrix**—inside one lightweight web app. By capturing structured inputs about value drivers, competitive positioning, impact, and effort, the tool instantly produces intuitive charts that guide strategic investment, roadmap prioritisation, and stakeholder communication.
+
+## Target Persona – Chief Technology Officer (CTO)
+
+| Attribute | Details |
+|-----------|---------|
+| **Role** | Executive technology leader (start‑up → mid‑market SaaS → enterprise). |
+| **Primary Goals** | • Select the right technologies/vend­ors  • Balance quick wins vs strategic “big bets”  • Communicate rationale to C‑suite & board |
+| **Pain Points** | • Information overload  • Lack of standardised comparison between options  • Pressure to justify spend and ROI |
+| **Typical Scenario** | Quarterly planning session or ad‑hoc vendor bake‑off. Needs a fast, data‑backed way to visualise trade‑offs and reach consensus. |
+
+## Product Vision & Goals
+
+1. **Make trade‑offs obvious** – Translate qualitative judgments (importance, performance, impact, effort) into objective visualisations.
+2. **Accelerate decision‑making** – Reduce a week of spreadsheet wrangling to minutes of interactive modelling.
+3. **Facilitate transparent governance** – Store the assumptions behind every score so future reviews are evidence‑based.
+4. **Stand alone & stay simple** – No log‑in, no servers to configure, no external databases—just a single HTML app anyone can clone and run.
+
+## Core Functions
+
+### Function 1 – Value Map / Value Tree
+A radar‑style (or connected line) chart that plots multiple competitors or options against the attributes that your market cares about, ordered by importance.
+* **Attribute Management** – Create, rank (drag‑and‑drop or numeric), edit, delete attributes.
+* **Performance Scoring** – 1‑5 (configurable) score matrix: `[entity][attribute] → score`.
+* **Entity Traces** – Custom line style, colour, label; unlimited competitors; dynamic legend.
+* **Interactivity & Export** – Hover tool‑tips, CSV/JSON import & export, download PNG/SVG/PDF.
+
+### Function 2 – Impact vs Effort Matrix
+A 2‑D scatter plot that positions initiatives by expected **Impact** (gain) and **Effort** (cost/complexity), automatically colouring points by quadrant.
+* **Scoring Inputs** – Configurable 1‑10 scales; numeric entry, inline edit, or drag‑to‑update.
+* **Quadrant Thresholds** – User‑moveable cut‑off lines; auto‑updating quadrant labels (Easy Wins, Big Bets, Incremental, Money Pit).
+* **Marker Management** – CRUD initiatives, bulk CSV import, optional bubble size for third metric.
+* **Filters & Export** – Show/hide by category, one‑click PNG/SVG/PDF or data export.
+
+### Supporting Features
+* **Project Library** – Save multiple analyses (e.g., “Q3 Vendor Review”, “2025 Roadmap”) and switch between them.
+* **Reporting Dashboards** – Combine charts, numeric tables, and commentary for shareable read‑outs.
+* **Local Persistence** – All data stored as JSON on disk so nothing is lost between sessions.
+
+## Functional Requirements
+
+1. **Zero Auth / Single‑Page Experience**  
+   – Pure static site; open `index.html` and start working.
+2. **Project Management**  
+   – Create / rename / delete “projects” (collections of Value Map + Impact/Effort data).  
+   – Metadata: project name, description, optional repository URL.
+3. **Value Map Module**  
+   – Attribute CRUD, ranking, and validation.  
+   – Entity CRUD and colour/line‑style picker.  
+   – Chart renders live as data changes.
+4. **Impact/Effort Module**  
+   – Initiative CRUD with required fields *Name*, *Impact*, *Effort*.  
+   – Real‑time quadrant colouring, draggable thresholds.  
+   – Optional bubble‑size metric.
+5. **Import / Export**  
+   – JSON & CSV for both modules; combined project bundle download.  
+   – Image export (PNG, SVG, PDF).
+6. **Reporting & Visualisation**  
+   – Generate printable report per project consolidating both charts.  
+   – Toggle dark/light theme for presentations.
+
+---
+
+## Non‑Functional Requirements
+
+### Usability
+- Intuitive and user‑friendly interface
+- Responsive design that works on various devices and screen sizes
+
+---
+
+## Technical Requirements  
+*(kept verbatim as requested)*
+
+### Backend (Golang)
+- RESTful API for frontend-backend communication
+- Proper error handling and validation
+- Use of Go for dependency management
+
+### Frontend (React.js or similar)
+- Component-based architecture
+- Responsive design with CSS frameworks like Bootstrap or Material-UI
+- I want the structs passed to the frontend, without creating local structs.
+
+### Database (JSON)
+- Schema design for users, projects, evaluations, etc.
+- should be saved to disk
+- structs should be logical, nested, packed in a C style global variable.
+
+### Functions
+- The use of methods should be encouraged.
+- Split files logically to make it manageable for llms
+
