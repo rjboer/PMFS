@@ -57,12 +57,12 @@ type ProjectType struct {
 }
 
 type ProjectData struct {
-	Scope        string             `json:"scope" toml:"scope"`
-	StartDate    time.Time          `json:"start_date" toml:"start_date"`
-	EndDate      time.Time          `json:"end_date" toml:"end_date"`
-	Status       string             `json:"status" toml:"status"`
-	Priority     string             `json:"priority" toml:"priority"`
-	Requirements []Requirement_type `json:"requirements" toml:"requirements"`
+	Scope        string        `json:"scope" toml:"scope"`
+	StartDate    time.Time     `json:"start_date" toml:"start_date"`
+	EndDate      time.Time     `json:"end_date" toml:"end_date"`
+	Status       string        `json:"status" toml:"status"`
+	Priority     string        `json:"priority" toml:"priority"`
+	Requirements []Requirement `json:"requirements" toml:"requirements"`
 	//	Attachments  []Attachment       `json:"attachments" toml:"attachments"`
 	// Intelligence holds data extracted from attachments (e.g., screenshots, documents).
 	//	Intelligence []Intelligence `json:"intelligence" toml:"intelligence"`
@@ -73,11 +73,11 @@ type ProjectData struct {
 	// RequirementRelations holds the LLM-scored relationships between requirements.
 	//	RequirementRelations  []RequirementRelation `json:"requirement_relations" toml:"requirement_relations"`
 	//	RequirementCategories []string              `json:"requirement_Categories" toml:"requirement_Categories"`
-	FixedCatagories bool `json:"requirement_FixedCatagories" toml:"requirement_FixedCatagories"`
+	FixedCategories bool `json:"requirement_FixedCategories" toml:"requirement_FixedCategories"`
 }
 
 // Requirement represents a confirmed requirement with detailed metadata.
-type Requirement_type struct {
+type Requirement struct {
 	ID          int       `json:"id" toml:"id"`
 	Name        string    `json:"name" toml:"name"`
 	Description string    `json:"description" toml:"description"`
