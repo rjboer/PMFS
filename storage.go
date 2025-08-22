@@ -232,7 +232,7 @@ func (prj *ProjectType) LoadProject() error {
 	prjDir := projectDir(prj.productID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
-	if err := readTOML(tomlPath, &prj); err != nil {
+	if err := readTOML(tomlPath, prj); err != nil {
 		if os.IsNotExist(err) {
 			return ErrProjectNotFound
 		}
