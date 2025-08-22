@@ -17,7 +17,7 @@ import (
 
 // Requirement represents a potential requirement returned by Gemini.
 type Requirement struct {
-	ID          int    `json:"id"`
+	ID          int    `json:"id,string"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
