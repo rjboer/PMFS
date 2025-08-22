@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -71,13 +73,24 @@ func (c *RESTClient) AnalyzeAttachment(path string) ([]Requirement, error) {
 	if err := c.init(); err != nil {
 		return nil, err
 	}
+	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
+	if i := strings.Index(mt, ";"); i >= 0 {
+		mt = mt[:i]
+	}
+	if strings.HasPrefix(mt, "text/") {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return c.generateText(string(b))
+	}
 
 	fileID, mimeType, err := c.upload(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.generate(fileID, mimeType)
+	return c.generateFile(fileID, mimeType)
 }
 
 func (c *RESTClient) upload(path string) (fileID, mimeType string, err error) {
@@ -129,7 +142,7 @@ func (c *RESTClient) upload(path string) (fileID, mimeType string, err error) {
 	return ur.File.Name, ur.File.MimeType, nil
 }
 
-func (c *RESTClient) generate(fileID, mimeType string) ([]Requirement, error) {
+func (c *RESTClient) generateFile(fileID, mimeType string) ([]Requirement, error) {
 	prompt := `You are an assistant that extracts potential software requirements from files.
 Return a JSON array of objects with fields "id", "name", and "description".`
 
@@ -148,6 +161,27 @@ Return a JSON array of objects with fields "id", "name", and "description".`
 		"generationConfig": map[string]any{"responseMimeType": "application/json"},
 	}
 
+	return c.generate(body)
+}
+
+func (c *RESTClient) generateText(text string) ([]Requirement, error) {
+	prompt := `You are an assistant that extracts potential software requirements from files.
+Return a JSON array of objects with fields "id", "name", and "description".`
+
+	body := map[string]any{
+		"contents": []any{map[string]any{
+			"parts": []any{
+				map[string]any{"text": text},
+				map[string]any{"text": prompt},
+			},
+		}},
+		"generationConfig": map[string]any{"responseMimeType": "application/json"},
+	}
+
+	return c.generate(body)
+}
+
+func (c *RESTClient) generate(body map[string]any) ([]Requirement, error) {
 	b, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
