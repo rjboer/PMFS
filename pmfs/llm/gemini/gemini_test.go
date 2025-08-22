@@ -254,10 +254,15 @@ func TestRESTClientAnalyzeAttachmentReal(t *testing.T) {
 		if err != nil {
 			t.Fatalf("AnalyzeAttachment(spec1): %v", err)
 		}
+		t.Logf("real Gemini returned for spec1: %#v", r1)
+
 		r2, err := c.AnalyzeAttachment(p2)
 		if err != nil {
 			t.Fatalf("AnalyzeAttachment(spec2): %v", err)
 		}
+
+		t.Logf("real Gemini returned for spec2: %#v", r2)
+
 		if sameRequirements(r1, r2) {
 			t.Fatalf("expected different requirements for distinct documents")
 		}
@@ -271,10 +276,18 @@ func TestRESTClientAnalyzeAttachmentReal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AnalyzeAttachment(spec1): %v", err)
 	}
+// <<<<<<< codex/add-new-tests-for-analyzeattachment
+	t.Logf("mock Gemini returned for spec1: %#v", r1)
+// =======
+// >>>>>>> main
 	r2, err := c.AnalyzeAttachment(p2)
 	if err != nil {
 		t.Fatalf("AnalyzeAttachment(spec2): %v", err)
 	}
+// <<<<<<< codex/add-new-tests-for-analyzeattachment
+	t.Logf("mock Gemini returned for spec2: %#v", r2)
+// =======
+// >>>>>>> main
 	if sameRequirements(r1, r2) {
 		t.Fatalf("expected different requirements for mock documents")
 	}
