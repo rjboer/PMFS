@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
+	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	_ "github.com/rjboer/PMFS/internal/config"
+
 )
 
 // -----------------------------------------------------------------------------
@@ -132,7 +134,24 @@ type Attachment struct {
 	RelPath  string    `json:"rel_path" toml:"rel_path"` // e.g. "attachments/3/spec.pdf"
 	Mimetype string    `json:"mimetype" toml:"mimetype"` // e.g. "application/pdf"
 	AddedAt  time.Time `json:"added_at" toml:"added_at"`
-	Analyzed bool      `json:"analysed" toml:"analysed"`
+	Analyzed bool      `json:"analyzed" toml:"analyzed"`
+}
+
+// Analyze processes the attachment with Gemini and appends proposed requirements.
+func (att *Attachment) Analyze(prj *ProjectType) error {
+	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+	reqs, err := gemini.AnalyzeAttachment(full)
+	if err != nil {
+		return err
+	}
+	for _, r := range reqs {
+		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, Requirement{
+			Name:        r.Name,
+			Description: r.Description,
+		})
+	}
+	att.Analyzed = true
+	return nil
 }
 
 // ChangeLog records a change made to a requirement.
@@ -557,10 +576,14 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 		Analyzed: false,
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
+	ptr := &prj.D.Attachments[len(prj.D.Attachments)-1]
+	if err := ptr.Analyze(prj); err != nil {
+		return *ptr, err
+	}
 
 	// Persist to project.toml
 	if err := prj.SaveProject(); err != nil {
-		return att, err
+		return *ptr, err
 	}
-	return att, nil
+	return *ptr, nil
 }
