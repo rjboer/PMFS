@@ -71,6 +71,36 @@ func TestRESTClientAnalyzeAttachment(t *testing.T) {
 	}
 }
 
+func TestRESTClientAnalyzeAttachmentSpecs(t *testing.T) {
+	key := "test-key"
+	if b, err := os.ReadFile(filepath.Join("..", "..", "..", ".env")); err == nil {
+		for _, line := range strings.Split(string(b), "\n") {
+			if strings.HasPrefix(line, "GEMINI_API_KEY=") {
+				key = strings.TrimSpace(strings.TrimPrefix(line, "GEMINI_API_KEY="))
+				break
+			}
+		}
+	}
+	t.Setenv("GEMINI_API_KEY", key)
+	c := &RESTClient{HTTPClient: &http.Client{Transport: mockTransport{}}}
+	specs := []string{"spec1.txt", "spec2.txt", "spec3.png", "spec4.jpg"}
+	base := filepath.Join("..", "..", "..", "testdata")
+	for _, s := range specs {
+		s := s
+		t.Run(s, func(t *testing.T) {
+			p := filepath.Join(base, s)
+			reqs, err := c.AnalyzeAttachment(p)
+			if err != nil {
+				t.Fatalf("AnalyzeAttachment(%s): %v", s, err)
+			}
+			t.Logf("Gemini returned for %s: %#v", s, reqs)
+			if len(reqs) != 1 || reqs[0].Name != "R1" {
+				t.Fatalf("unexpected requirements: %#v", reqs)
+			}
+		})
+	}
+}
+
 type testClient struct{ name string }
 
 func (t testClient) AnalyzeAttachment(path string) ([]Requirement, error) {
