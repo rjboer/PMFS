@@ -51,7 +51,7 @@ type ProductType struct {
 	Projects []ProjectType `toml:"projects"`
 }
 
-// ProjectFile is the project's memory model placeholder.
+// ProjectType is the project's memory model placeholder.
 type ProjectType struct {
 	ID        int    `json:"id" toml:"id"`
 	ProductID int    `json:"productid" toml:"productid"`
@@ -105,7 +105,7 @@ type Requirement struct {
 type Attachment struct {
 	ID       int       `json:"id" toml:"id"`
 	Filename string    `json:"filename" toml:"filename"`
-	RelPath  string    `json:"rel_path" toml:"rel_path"` // e.g. "attachements/3/spec.pdf"
+	RelPath  string    `json:"rel_path" toml:"rel_path"` // e.g. "attachments/3/spec.pdf"
 	Mimetype string    `json:"mimetype" toml:"mimetype"` // e.g. "application/pdf"
 	AddedAt  time.Time `json:"added_at" toml:"added_at"`
 }
@@ -195,7 +195,7 @@ func (idx *Index) AddProduct(name string) error {
 		Projects: []ProjectType{},
 	})
 	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("Error Save-ing Toml, AddProduct function: %w", err)
+		return fmt.Errorf("error saving index, AddProduct function: %w", err)
 	}
 
 	return nil
@@ -239,13 +239,13 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 	}
 
 	if err := addedproject.SaveProject(); err != nil {
-		return fmt.Errorf("Error Save-ing Toml, AddProject function: %w", err)
+		return fmt.Errorf("error saving TOML, AddProject function: %w", err)
 	}
 
 	// Update in-memory index and persist
 	prd.Projects = append(prd.Projects, addedproject)
 	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("Error Save-ing Index, AddProject function: %w", err)
+		return fmt.Errorf("error saving index, AddProject function: %w", err)
 	}
 
 	return nil
@@ -275,7 +275,7 @@ func (prj *ProjectType) SaveProject() error {
 	}
 
 	if err := writeTOML(tomlPath, &dp); err != nil {
-		return fmt.Errorf("error write-ing project toml: %w", err)
+		return fmt.Errorf("error writing project TOML: %w", err)
 	}
 	return nil
 }
@@ -297,7 +297,7 @@ func (prj *ProjectType) LoadProject() error {
 		if os.IsNotExist(err) {
 			return ErrProjectNotFound
 		}
-		return fmt.Errorf("Error while reading a project, read %s: %w", tomlPath, err)
+		return fmt.Errorf("read project %s: %w", tomlPath, err)
 	}
 
 	prj.ID = dp.ID
@@ -348,7 +348,7 @@ func projectDir(productID, projectID int) string {
 }
 
 func attachmentDir(productID, projectID int) string {
-	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID), "attachements")
+	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID), "attachments")
 }
 
 func fileExists(path string) (bool, error) {
@@ -447,7 +447,7 @@ func detectMimeType(path string) string {
 	return mt
 }
 
-// IngestInputDir scans inputDir and ingests all regular files into attachements/.
+// IngestInputDir scans inputDir and ingests all regular files into attachments/.
 func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 	entries, err := os.ReadDir(inputDir)
 	if err != nil {
@@ -480,7 +480,7 @@ func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 }
 
 // AddAttachmentFromInput moves a single file from inputDir into this project's
-// attachements/<id>/ folder, records minimal metadata, and saves the project.
+// attachments/<id>/ folder, records minimal metadata, and saves the project.
 func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
 	inputPath := filepath.Join(inputDir, filename)
 	if ok, err := fileExists(inputPath); err != nil {
@@ -489,10 +489,10 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 		return Attachment{}, fmt.Errorf("input file not found: %s", inputPath)
 	}
 
-	// Prepare destination base: .../projects/<prjID>/attachements/
+	// Prepare destination base: .../projects/<prjID>/attachments/
 	attBaseDir := attachmentDir(prj.ProductID, prj.ID)
 	if err := os.MkdirAll(attBaseDir, 0o755); err != nil {
-		return Attachment{}, fmt.Errorf("mkdir attachements: %w", err)
+		return Attachment{}, fmt.Errorf("mkdir attachments: %w", err)
 	}
 
 	// Allocate next numeric ID using existing helper
@@ -508,7 +508,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 	// Create the destination directory and final path
 	attDir := filepath.Join(attBaseDir, strconv.Itoa(nextID))
 	if err := os.MkdirAll(attDir, 0o755); err != nil {
-		return Attachment{}, fmt.Errorf("mkdir att dir: %w", err)
+		return Attachment{}, fmt.Errorf("mkdir attachment dir: %w", err)
 	}
 	base := filepath.Base(filename)
 	dstPath := filepath.Join(attDir, base)
@@ -522,7 +522,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 	mt := detectMimeType(dstPath)
 
 	// Record attachment using a relative path for portability
-	rel := filepath.ToSlash(filepath.Join("attachements", strconv.Itoa(nextID), base))
+	rel := filepath.ToSlash(filepath.Join("attachments", strconv.Itoa(nextID), base))
 	att := Attachment{
 		ID:       nextID,
 		Filename: base,
