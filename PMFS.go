@@ -1,8 +1,11 @@
-package storage
+package PMFS
 
 import (
 	"errors"
 	"fmt"
+	"io"
+	"mime"
+	"net/http"
 
 	"os"
 	"path/filepath"
@@ -66,13 +69,13 @@ type ProjectData struct {
 	Status       string        `json:"status" toml:"status"`
 	Priority     string        `json:"priority" toml:"priority"`
 	Requirements []Requirement `json:"requirements" toml:"requirements"`
-	//	Attachments  []Attachment       `json:"attachments" toml:"attachments"`
+	Attachments  []Attachment  `json:"attachments" toml:"attachments"`
 	// Intelligence holds data extracted from attachments (e.g., screenshots, documents).
-	//	Intelligence []Intelligence `json:"intelligence" toml:"intelligence"`
+	Intelligence []Intelligence `json:"intelligence" toml:"intelligence"`
 	// IntelligenceLinks connect extracted intelligence with confirmed requirements.
 	//	IntelligenceLinks []IntelligenceLink `json:"intelligence_links" toml:"intelligence_links"`
 	// PotentialRequirements are proposed requirements derived from intelligence analysis.
-	//	PotentialRequirements []PotentialRequirement `json:"potential_requirements" toml:"potential_requirements"`
+	PotentialRequirements []Requirement `json:"potential_requirements" toml:"potential_requirements"`
 	// RequirementRelations holds the LLM-scored relationships between requirements.
 	//	RequirementRelations  []RequirementRelation `json:"requirement_relations" toml:"requirement_relations"`
 	//	RequirementCategories []string              `json:"requirement_Categories" toml:"requirement_Categories"`
@@ -81,20 +84,48 @@ type ProjectData struct {
 
 // Requirement represents a confirmed requirement with detailed metadata.
 type Requirement struct {
-	ID          int       `json:"id" toml:"id"`
-	Name        string    `json:"name" toml:"name"`
-	Description string    `json:"description" toml:"description"`
-	Priority    int       `json:"priority" toml:"priority"` // 1 (highest) to 8 (lowest)
-	Level       int       `json:"level" toml:"level"`       // Hierarchical level within requirements.
-	Owner       string    `json:"owner" toml:"owner"`       // Consider replacing with a User struct for richer user data.
-	Status      string    `json:"status" toml:"status"`     // e.g., "Draft", "Confirmed"
-	CreatedAt   time.Time `json:"created_at" toml:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" toml:"updated_at"`
-	ParentID    int       `json:"parent_id" toml:"parent_id"` // 0 for top‑level
-	Category    string    `json:"category" toml:"category"`   // e.g., "System Requirements"
-	//History     []ChangeLog `json:"history" toml:"history"`     // Record of changes to the requirement.
+	ID               int             `json:"id" toml:"id"`
+	Name             string          `json:"name" toml:"name"`
+	Description      string          `json:"description" toml:"description"`
+	Priority         int             `json:"priority" toml:"priority"` // 1 (highest) to 8 (lowest)
+	Level            int             `json:"level" toml:"level"`       // Hierarchical level within requirements.
+	User             string          `json:"user" toml:"user"`
+	Status           string          `json:"status" toml:"status"` // e.g., "Draft", "Confirmed"
+	CreatedAt        time.Time       `json:"created_at" toml:"created_at"`
+	UpdatedAt        time.Time       `json:"updated_at" toml:"updated_at"`
+	ParentID         int             `json:"parent_id" toml:"parent_id"` // 0 for top‑level
+	Category         string          `json:"category" toml:"category"`   // e.g., "System Requirements"
+	History          []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
+	IntelligenceLink []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
 	// Optional: Tags can help with flexible categorization or filtering.
-	//Tags []string `json:"tags,omitempty" toml:"tags"`
+	Tags []string `json:"tags,omitempty" toml:"tags"`
+}
+
+// Attachment is minimal metadata about an ingested file.
+type Attachment struct {
+	ID       int       `json:"id" toml:"id"`
+	Filename string    `json:"filename" toml:"filename"`
+	RelPath  string    `json:"rel_path" toml:"rel_path"` // e.g. "attachements/3/spec.pdf"
+	Mimetype string    `json:"mimetype" toml:"mimetype"` // e.g. "application/pdf"
+	AddedAt  time.Time `json:"added_at" toml:"added_at"`
+}
+
+// ChangeLog records a change made to a requirement.
+type ChangeLog struct {
+	Timestamp time.Time `json:"timestamp" toml:"timestamp"`
+	User      string    `json:"user" toml:"user"`
+	Comment   string    `json:"comment" toml:"comment"`
+}
+
+// Intelligence represents data extracted from an attachment.
+type Intelligence struct {
+	ID int `json:"id" toml:"id"`
+	// Source describes the type of attachment (e.g., "screenshot", "document").
+	Filepath string `json:"Filepath" toml:"Filepath"`
+	// Content contains the extracted text or metadata.
+	Content     string    `json:"content" toml:"content"`
+	Description string    `json:"description" toml:"description"`
+	ExtractedAt time.Time `json:"extracted_at" toml:"extracted_at"`
 }
 
 // -----------------------------------------------------------------------------
@@ -316,6 +347,10 @@ func projectDir(productID, projectID int) string {
 	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID))
 }
 
+func attachmentDir(productID, projectID int) string {
+	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID), "attachements")
+}
+
 func fileExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -363,4 +398,143 @@ func numericSubdirs(dir string) ([]int, error) {
 	}
 	sort.Ints(out)
 	return out, nil
+}
+
+// moveFile tries rename, then falls back to copy+remove (cross-device safe).
+func moveFile(src, dst string) error {
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+	return os.Remove(src)
+}
+
+// detectMimeType reads the first 512 bytes to sniff the mimetype,
+// falling back to extension-based detection.
+func detectMimeType(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	buf := make([]byte, 512)
+	n, _ := io.ReadFull(f, buf)
+	mt := http.DetectContentType(buf[:n])
+	if mt == "application/octet-stream" {
+		if ext := filepath.Ext(path); ext != "" {
+			if byExt := mime.TypeByExtension(ext); byExt != "" {
+				return byExt
+			}
+		}
+	}
+	return mt
+}
+
+// IngestInputDir scans inputDir and ingests all regular files into attachements/.
+func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
+	entries, err := os.ReadDir(inputDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// Optional: stable order
+	names := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		n := e.Name()
+		if len(n) == 0 || n[0] == '.' {
+			continue
+		} // skip dotfiles
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
+	ingested := make([]Attachment, 0, len(names))
+	for _, n := range names {
+		att, err := prj.AddAttachmentFromInput(inputDir, n)
+		if err != nil {
+			return ingested, err // fail fast; or change to continue if you prefer
+		}
+		ingested = append(ingested, att)
+	}
+	return ingested, nil
+}
+
+// AddAttachmentFromInput moves a single file from inputDir into this project's
+// attachements/<id>/ folder, records minimal metadata, and saves the project.
+func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
+	inputPath := filepath.Join(inputDir, filename)
+	if ok, err := fileExists(inputPath); err != nil {
+		return Attachment{}, err
+	} else if !ok {
+		return Attachment{}, fmt.Errorf("input file not found: %s", inputPath)
+	}
+
+	// Prepare destination base: .../projects/<prjID>/attachements/
+	attBaseDir := attachmentDir(prj.ProductID, prj.ID)
+	if err := os.MkdirAll(attBaseDir, 0o755); err != nil {
+		return Attachment{}, fmt.Errorf("mkdir attachements: %w", err)
+	}
+
+	// Allocate next numeric ID using existing helper
+	ids, err := numericSubdirs(attBaseDir)
+	if err != nil {
+		return Attachment{}, err
+	}
+	nextID := 1
+	if len(ids) > 0 {
+		nextID = ids[len(ids)-1] + 1
+	}
+
+	// Create the destination directory and final path
+	attDir := filepath.Join(attBaseDir, strconv.Itoa(nextID))
+	if err := os.MkdirAll(attDir, 0o755); err != nil {
+		return Attachment{}, fmt.Errorf("mkdir att dir: %w", err)
+	}
+	base := filepath.Base(filename)
+	dstPath := filepath.Join(attDir, base)
+
+	// Move (rename with cross-device copy fallback)
+	if err := moveFile(inputPath, dstPath); err != nil {
+		return Attachment{}, fmt.Errorf("move file: %w", err)
+	}
+
+	// Detect mimetype
+	mt := detectMimeType(dstPath)
+
+	// Record attachment using a relative path for portability
+	rel := filepath.ToSlash(filepath.Join("attachements", strconv.Itoa(nextID), base))
+	att := Attachment{
+		ID:       nextID,
+		Filename: base,
+		RelPath:  rel,
+		Mimetype: mt,
+		AddedAt:  time.Now(),
+	}
+	prj.D.Attachments = append(prj.D.Attachments, att)
+
+	// Persist to project.toml
+	if err := prj.SaveProject(); err != nil {
+		return att, err
+	}
+	return att, nil
 }
