@@ -84,6 +84,17 @@ func TestClientFuncAnalyzeAttachment(t *testing.T) {
 	}
 }
 
+func TestRequirementUnmarshalStringID(t *testing.T) {
+	data := []byte(`[{"id":"42","name":"N","description":"D"}]`)
+	var reqs []Requirement
+	if err := json.Unmarshal(data, &reqs); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if len(reqs) != 1 || reqs[0].ID != 42 {
+		t.Fatalf("unexpected requirements: %#v", reqs)
+	}
+}
+
 func sameRequirements(a, b []Requirement) bool {
 	if len(a) != len(b) {
 		return false
