@@ -186,9 +186,15 @@ func (idx *Index) SaveIndex() error {
 // AddProject appends a project to the given product and writes its TOML.
 // projectID = len(product.Projects) + 1
 // Collisions on disk are acceptable by your policy (we overwrite TOML).
-func (prd *ProductType) AddProject(projectName string) error {
+//
+// idx must be the index containing this product so the index can be
+// persisted after adding the project.
+func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 	if projectName == "" {
 		return errors.New("project name cannot be empty")
+	}
+	if idx == nil {
+		return errors.New("index cannot be nil")
 	}
 
 	newPrjID := len(prd.Projects) + 1
@@ -211,6 +217,9 @@ func (prd *ProductType) AddProject(projectName string) error {
 
 	// Update in-memory index and persist
 	prd.Projects = append(prd.Projects, addedproject)
+	if err := idx.SaveIndex(); err != nil {
+		return fmt.Errorf("Error Save-ing Index, AddProject function: %w", err)
+	}
 
 	return nil
 }
