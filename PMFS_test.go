@@ -130,10 +130,6 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
 
-	if att.Analyzed {
-		t.Fatalf("expected Analyzed to default to false")
-	}
-
 	dst := filepath.Join(dir, productsDir, "1", "projects", "1", "attachments", "1", fname)
 	if _, err := os.Stat(dst); err != nil {
 		t.Fatalf("attachment not moved: %v", err)
@@ -155,8 +151,8 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if len(prjReload.D.Attachments) != 1 || prjReload.D.Attachments[0].Filename != fname {
 		t.Fatalf("attachment not persisted: %#v", prjReload.D.Attachments)
 	}
-	if prjReload.D.Attachments[0].Analyzed {
-		t.Fatalf("Analyzed flag not persisted as false: %#v", prjReload.D.Attachments[0])
+	if !prjReload.D.Attachments[0].Analyzed {
+		t.Fatalf("Analyzed flag not persisted: %#v", prjReload.D.Attachments[0])
 	}
 }
 
@@ -203,6 +199,18 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
+	// file moved to project attachments directory
+	dst := filepath.Join(dir, productsDir, "1", "projects", "1", "attachments", "1", fname)
+	if _, err := os.Stat(dst); err != nil {
+		t.Fatalf("moved file missing: %v", err)
+	}
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source file still exists")
+	}
+	// attachment metadata recorded in project
+	if len(prj.D.Attachments) != 1 || prj.D.Attachments[0] != att {
+		t.Fatalf("attachment metadata not recorded: %#v", prj.D.Attachments)
+	}
 	if !att.Analyzed {
 		t.Fatalf("attachment not analyzed")
 	}
@@ -212,6 +220,17 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if prj.D.PotentialRequirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not appended")
 	}
+	// ensure requirements persisted to disk
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.LoadProject(); err != nil {
+		t.Fatalf("LoadProject: %v", err)
+	}
+	if len(prjReload.D.PotentialRequirements) != len(mockReqs) {
+		t.Fatalf("expected %d persisted requirements, got %d", len(mockReqs), len(prjReload.D.PotentialRequirements))
+	}
+	if prjReload.D.PotentialRequirements[0].Name != mockReqs[0].Name {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	}
 }
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
@@ -220,7 +239,6 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		return nil, nil
 	}))
 	defer gemini.SetClient(orig)
-
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
 
