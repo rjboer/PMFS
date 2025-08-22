@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
+	_ "github.com/rjboer/PMFS/internal/config"
 )
 
 // -----------------------------------------------------------------------------

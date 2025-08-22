@@ -18,9 +18,19 @@ PMFS (Product Manager File System) is a lightweight backend for storing and orga
    cd PMFS
    ```
 3. **Download modules**:
-   ```bash
-   go mod download
-   ```
+    ```bash
+    go mod download
+    ```
+
+### Environment Variables
+
+The library reads configuration from environment variables. You can place them
+in a local `.env` file which is loaded automatically.
+
+Required variables:
+
+- `PMFS_BASEDIR` – base directory used to store PMFS data.
+- `GEMINI_API_KEY` – API key for Gemini integrations.
 
 ## Directory Structure
 
