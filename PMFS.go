@@ -21,19 +21,42 @@ import (
 // -----------------------------------------------------------------------------
 
 const (
-	databaseDir   = "database"
 	productsDir   = "products"
 	indexFilename = "index.toml"
 	projectTOML   = "project.toml"
+	envBaseDir    = "PMFS_BASEDIR"
 )
 
 var (
-	baseProductsDir = filepath.Join(databaseDir, productsDir)
-	indexPath       = filepath.Join(baseProductsDir, indexFilename)
+	baseDir         = defaultBaseDir()
+	baseProductsDir string
+	indexPath       string
 
 	ErrProductNotFound = errors.New("product not found")
 	ErrProjectNotFound = errors.New("project not found")
 )
+
+func init() {
+	setBaseDir(baseDir)
+}
+
+func defaultBaseDir() string {
+	if dir := os.Getenv(envBaseDir); dir != "" {
+		return dir
+	}
+	return "database"
+}
+
+// SetBaseDir overrides the base data directory and updates internal paths.
+func SetBaseDir(dir string) {
+	baseDir = dir
+	setBaseDir(dir)
+}
+
+func setBaseDir(dir string) {
+	baseProductsDir = filepath.Join(dir, productsDir)
+	indexPath = filepath.Join(baseProductsDir, indexFilename)
+}
 
 // -----------------------------------------------------------------------------
 // Memory model
