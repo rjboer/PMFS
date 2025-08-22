@@ -233,6 +233,80 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 }
 
+func TestAddAttachmentRealAPI(t *testing.T) {
+	key := os.Getenv("GEMINI_API_KEY")
+	if key == "" {
+		t.Skip("GEMINI_API_KEY not set")
+	}
+	t.Setenv("GEMINI_API_KEY", key)
+
+	dir := t.TempDir()
+	SetBaseDir(dir)
+	if err := EnsureLayout(); err != nil {
+		t.Fatalf("EnsureLayout: %v", err)
+	}
+	idx, err := LoadIndex()
+	if err != nil {
+		t.Fatalf("LoadIndex: %v", err)
+	}
+	if err := idx.AddProduct("prod1"); err != nil {
+		t.Fatalf("AddProduct: %v", err)
+	}
+	idx, err = LoadIndex()
+	if err != nil {
+		t.Fatalf("LoadIndex: %v", err)
+	}
+	prd := &idx.Products[0]
+	if err := prd.AddProject(&idx, "prj1"); err != nil {
+		t.Fatalf("AddProject: %v", err)
+	}
+	prj := &idx.Products[0].Projects[0]
+
+	inputDir := filepath.Join(dir, "input")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatalf("Mkdir input: %v", err)
+	}
+	fname := "req.txt"
+	src := filepath.Join(inputDir, fname)
+	content := "The system shall allow users to upload files."
+	if err := os.WriteFile(src, []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	att, err := prj.AddAttachmentFromInput(inputDir, fname)
+	if err != nil {
+		t.Fatalf("AddAttachmentFromInput: %v", err)
+	}
+
+	dst := filepath.Join(dir, productsDir, "1", "projects", "1", "attachments", "1", fname)
+	if _, err := os.Stat(dst); err != nil {
+		t.Fatalf("attachment not moved: %v", err)
+	}
+	if _, err := os.Stat(src); !os.IsNotExist(err) {
+		t.Fatalf("source file still exists")
+	}
+	if len(prj.D.Attachments) != 1 || prj.D.Attachments[0] != att {
+		t.Fatalf("attachment metadata not recorded: %#v", prj.D.Attachments)
+	}
+	if !att.Analyzed {
+		t.Fatalf("attachment not analyzed")
+	}
+	if len(prj.D.PotentialRequirements) == 0 {
+		t.Fatalf("no requirements returned")
+	}
+
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.LoadProject(); err != nil {
+		t.Fatalf("LoadProject: %v", err)
+	}
+	if len(prjReload.D.PotentialRequirements) == 0 {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	}
+	if prjReload.D.PotentialRequirements[0].Name == "" {
+		t.Fatalf("empty requirement name: %#v", prjReload.D.PotentialRequirements[0])
+	}
+}
+
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 
 	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
