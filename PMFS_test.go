@@ -8,6 +8,7 @@ import (
 )
 
 func TestEnsureLayoutCreatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -20,6 +21,7 @@ func TestEnsureLayoutCreatesIndex(t *testing.T) {
 }
 
 func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -46,6 +48,7 @@ func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
 }
 
 func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -81,6 +84,7 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 }
 
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
@@ -139,6 +143,7 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 }
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
