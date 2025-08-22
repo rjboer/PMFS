@@ -118,6 +118,10 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
 
+	if att.Analyzed {
+		t.Fatalf("expected Analyzed to default to false")
+	}
+
 	dst := filepath.Join(dir, productsDir, "1", "projects", "1", "attachments", "1", fname)
 	if _, err := os.Stat(dst); err != nil {
 		t.Fatalf("attachment not moved: %v", err)
@@ -135,6 +139,9 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 	if len(prjReload.D.Attachments) != 1 || prjReload.D.Attachments[0].Filename != fname {
 		t.Fatalf("attachment not persisted: %#v", prjReload.D.Attachments)
+	}
+	if prjReload.D.Attachments[0].Analyzed {
+		t.Fatalf("Analyzed flag not persisted as false: %#v", prjReload.D.Attachments[0])
 	}
 }
 
