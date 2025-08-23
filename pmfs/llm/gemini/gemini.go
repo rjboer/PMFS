@@ -1,27 +1,26 @@
 package gemini
 
 import (
-
-        "bytes"
-        "encoding/json"
-        "errors"
-        "fmt"
-        "io"
-        "mime"
-        "mime/multipart"
-        "net/http"
-        "os"
-        "path/filepath"
-        "strings"
-        "time"
-
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"mime"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+)
 
 // Requirement represents a potential requirement returned by Gemini.
 type Requirement struct {
 	ID          int    `json:"id,string"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-
 }
 
 func (r *Requirement) UnmarshalJSON(data []byte) error {
@@ -37,9 +36,13 @@ func (r *Requirement) UnmarshalJSON(data []byte) error {
 	case float64:
 		r.ID = int(v)
 	case string:
-		if i, err := strconv.Atoi(v); err == nil {
-			r.ID = i
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return err
 		}
+		r.ID = i
+	default:
+		return fmt.Errorf("invalid id type %T", aux.ID)
 	}
 	return nil
 }
