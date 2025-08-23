@@ -43,17 +43,33 @@ func (r *Requirement) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Client defines the behavior needed to analyze attachments.
+// Client defines the behavior needed to analyze attachments and answer prompts.
 type Client interface {
 	AnalyzeAttachment(path string) ([]Requirement, error)
+	Ask(prompt string) (string, error)
 }
 
 // ClientFunc allows using ordinary functions as Client.
-type ClientFunc func(string) ([]Requirement, error)
+// Populate the desired function fields to adapt in tests.
+type ClientFunc struct {
+	AnalyzeAttachmentFunc func(string) ([]Requirement, error)
+	AskFunc               func(string) (string, error)
+}
 
 // AnalyzeAttachment satisfies Client interface.
 func (f ClientFunc) AnalyzeAttachment(path string) ([]Requirement, error) {
-	return f(path)
+	if f.AnalyzeAttachmentFunc == nil {
+		return nil, errors.New("AnalyzeAttachment not implemented")
+	}
+	return f.AnalyzeAttachmentFunc(path)
+}
+
+// Ask satisfies Client interface.
+func (f ClientFunc) Ask(prompt string) (string, error) {
+	if f.AskFunc == nil {
+		return "", errors.New("Ask not implemented")
+	}
+	return f.AskFunc(prompt)
 }
 
 var client Client = &RESTClient{}
@@ -68,6 +84,11 @@ func SetClient(c Client) Client {
 // AnalyzeAttachment uploads and analyzes the file at path using the configured client.
 func AnalyzeAttachment(path string) ([]Requirement, error) {
 	return client.AnalyzeAttachment(path)
+}
+
+// Ask sends a prompt to the configured client and returns the response.
+func Ask(prompt string) (string, error) {
+	return client.Ask(prompt)
 }
 
 // RESTClient implements Client using Gemini's REST API.
@@ -112,6 +133,19 @@ func (c *RESTClient) AnalyzeAttachment(path string) ([]Requirement, error) {
 	}
 
 	return c.generateFile(fileID, mimeType)
+}
+
+// Ask sends a prompt to Gemini and returns the raw text response.
+func (c *RESTClient) Ask(prompt string) (string, error) {
+	if err := c.init(); err != nil {
+		return "", err
+	}
+	body := map[string]any{
+		"contents": []any{map[string]any{
+			"parts": []any{map[string]any{"text": prompt}},
+		}},
+	}
+	return c.generate(body)
 }
 
 func (c *RESTClient) upload(path string) (fileID, mimeType string, err error) {
@@ -182,7 +216,15 @@ Return a JSON array of objects with fields "id", "name", and "description".`
 		"generationConfig": map[string]any{"responseMimeType": "application/json"},
 	}
 
-	return c.generate(body)
+	text, err := c.generate(body)
+	if err != nil {
+		return nil, err
+	}
+	var reqs []Requirement
+	if err := json.Unmarshal([]byte(text), &reqs); err != nil {
+		return nil, err
+	}
+	return reqs, nil
 }
 
 func (c *RESTClient) generateText(text string) ([]Requirement, error) {
@@ -199,29 +241,37 @@ Return a JSON array of objects with fields "id", "name", and "description".`
 		"generationConfig": map[string]any{"responseMimeType": "application/json"},
 	}
 
-	return c.generate(body)
-}
-
-func (c *RESTClient) generate(body map[string]any) ([]Requirement, error) {
-	b, err := json.Marshal(body)
+	resp, err := c.generate(body)
 	if err != nil {
 		return nil, err
+	}
+	var reqs []Requirement
+	if err := json.Unmarshal([]byte(resp), &reqs); err != nil {
+		return nil, err
+	}
+	return reqs, nil
+}
+
+func (c *RESTClient) generate(body map[string]any) (string, error) {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return "", err
 	}
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=%s", c.APIKey)
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		rb, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("generate failed: %s: %s", resp.Status, string(rb))
+		return "", fmt.Errorf("generate failed: %s: %s", resp.Status, string(rb))
 	}
 
 	var gr struct {
@@ -234,15 +284,10 @@ func (c *RESTClient) generate(body map[string]any) ([]Requirement, error) {
 		} `json:"candidates"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&gr); err != nil {
-		return nil, err
+		return "", err
 	}
 	if len(gr.Candidates) == 0 || len(gr.Candidates[0].Content.Parts) == 0 {
-		return nil, errors.New("no response from gemini")
+		return "", errors.New("no response from gemini")
 	}
-
-	var reqs []Requirement
-	if err := json.Unmarshal([]byte(gr.Candidates[0].Content.Parts[0].Text), &reqs); err != nil {
-		return nil, err
-	}
-	return reqs, nil
+	return gr.Candidates[0].Content.Parts[0].Text, nil
 }
