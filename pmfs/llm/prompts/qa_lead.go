@@ -5,17 +5,17 @@ package prompts
 var qaLeadPrompts = []Prompt{
 	{
 		ID:       "1",
-		Question: "What testing strategies will you employ for this project?",
+		Template: "Given the requirement %s, what testing strategies will you employ for this project?",
 		FollowUp: "How will these strategies cover edge cases?",
 	},
 	{
 		ID:       "2",
-		Question: "How will automation be integrated into the QA process?",
+		Template: "Given the requirement %s, how will automation be integrated into the QA process?",
 		FollowUp: "Which tools will you use for automation?",
 	},
 	{
 		ID:       "3",
-		Question: "What is the plan for regression testing?",
+		Template: "Given the requirement %s, what is the plan for regression testing?",
 		FollowUp: "How will you maintain test cases over time?",
 	},
 }

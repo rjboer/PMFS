@@ -11,13 +11,13 @@ This package contains role-specific prompts used by the PMFS library.
 ## Adding a New Role
 
 1. Create a new file in this directory named after the role, for example `dev_ops.go`.
-2. Define a slice of `Prompt` values for the role:
+2. Define a slice of `Prompt` values for the role. Each prompt uses `Template` with a `%s` placeholder for the requirement:
 
 ```go
 package prompts
 
 var devOpsPrompts = []Prompt{
-    {ID: "1", Question: "...", FollowUp: "..."},
+    {ID: "1", Template: "Given the requirement %s, ...", FollowUp: "..."},
 }
 ```
 
