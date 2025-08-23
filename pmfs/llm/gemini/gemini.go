@@ -1,26 +1,27 @@
 package gemini
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"mime"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
-)
+
+        "bytes"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "io"
+        "mime"
+        "mime/multipart"
+        "net/http"
+        "os"
+        "path/filepath"
+        "strings"
+        "time"
+
 
 // Requirement represents a potential requirement returned by Gemini.
 type Requirement struct {
 	ID          int    `json:"id,string"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+
 }
 
 func (r *Requirement) UnmarshalJSON(data []byte) error {
