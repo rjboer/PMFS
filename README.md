@@ -107,6 +107,12 @@ An example demonstrating the Gemini client lives in `examples/gemini` and can be
 go run ./examples/gemini
 ```
 
+An example combining Gemini analysis, interactive questions, and gate evaluation lives in `examples/integration` and can be run with:
+
+```bash
+go run ./examples/integration
+```
+
 ## Available Functions
 
 - `EnsureLayout()`
