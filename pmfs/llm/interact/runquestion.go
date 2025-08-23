@@ -3,6 +3,7 @@ package interact
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
@@ -30,26 +31,36 @@ func RunQuestion(client gemini.Client, role, questionID, text string) (bool, str
 		return false, "", fmt.Errorf("prompt %s/%s not found", role, questionID)
 	}
 
-	for i := 0; i < 3; i++ {
-		prompt := fmt.Sprintf(p.Template, text)
-		resp, err := client.Ask(prompt)
+	prompt := fmt.Sprintf(p.Template, text)
+	resp, err := client.Ask(prompt)
+	if err != nil {
+		return false, "", err
+	}
+	re := regexp.MustCompile(`(?i)\b(yes|no)\b`)
+	match := re.FindStringSubmatch(resp)
+	for i := 0; i < 2 && len(match) == 0; i++ {
+		resp, err = client.Ask("Answer Yes or No only")
 		if err != nil {
 			return false, "", err
 		}
-		ans := strings.ToLower(resp)
-		switch {
-		case strings.Contains(ans, "yes"):
-			return true, "", nil
-		case strings.Contains(ans, "no"):
-			if p.FollowUp == "" {
-				return false, "", nil
-			}
-			follow, err := client.Ask(p.FollowUp)
-			if err != nil {
-				return false, "", err
-			}
-			return false, follow, nil
-		}
+		match = re.FindStringSubmatch(resp)
 	}
-	return false, "", errors.New("unable to determine answer")
+	if len(match) == 0 {
+		return false, "", errors.New("unable to determine yes/no answer")
+	}
+	ans := strings.ToLower(match[1])
+	switch ans {
+	case "yes":
+		return true, "", nil
+	case "no":
+		if p.FollowUp == "" {
+			return false, "", nil
+		}
+		follow, err := client.Ask(p.FollowUp)
+		if err != nil {
+			return false, "", err
+		}
+		return false, follow, nil
+	}
+	return false, "", errors.New("unexpected answer")
 }
