@@ -72,3 +72,45 @@ func TestRunQuestionNoFollowUp(t *testing.T) {
 		t.Fatalf("unexpected follow-up %q", follow)
 	}
 }
+
+func TestRunQuestionAmbiguous(t *testing.T) {
+	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Question? Requirement: %s."}})
+	call := 0
+	c := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		call++
+		switch call {
+		case 1:
+			expected := "Question? Requirement: ignored."
+			if prompt != expected {
+				t.Fatalf("unexpected prompt %q", prompt)
+			}
+			return "Maybe", nil
+		case 2, 3:
+			expected := "Answer Yes or No only"
+			if prompt != expected {
+				t.Fatalf("unexpected clarification prompt %q", prompt)
+			}
+			return "Maybe", nil
+		default:
+			t.Fatalf("unexpected call %d with prompt %q", call, prompt)
+			return "", nil
+		}
+	}}
+
+	got, follow, err := RunQuestion(c, "test", "1", "ignored")
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if err.Error() != "unable to determine yes/no answer" {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if call != 3 {
+		t.Fatalf("expected three Ask calls, got %d", call)
+	}
+	if got {
+		t.Fatalf("expected false result")
+	}
+	if follow != "" {
+		t.Fatalf("unexpected follow-up %q", follow)
+	}
+}
