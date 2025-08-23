@@ -1,30 +1,30 @@
 package interact
 
 import (
-	"os"
-	"strings"
 	"testing"
 
+	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	"github.com/rjboer/PMFS/pmfs/llm/prompts"
 )
 
-// loadAPIKey ensures GEMINI_API_KEY is available or skips the test.
-func loadAPIKey(t *testing.T) {
-	t.Helper()
-	if _, ok := os.LookupEnv("GEMINI_API_KEY"); !ok {
-		t.Skip("GEMINI_API_KEY not set")
-	}
-}
-
 func TestRunQuestionYes(t *testing.T) {
-	loadAPIKey(t)
 	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Respond only with the word 'Yes'. Requirement: %s."}})
-	got, follow, err := RunQuestion("test", "1", "ignored")
-	if err != nil {
-		if strings.Contains(err.Error(), "Forbidden") {
-			t.Skipf("API access forbidden: %v", err)
+	calls := 0
+	c := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		calls++
+		expected := "Respond only with the word 'Yes'. Requirement: ignored."
+		if prompt != expected {
+			t.Fatalf("unexpected prompt %q", prompt)
 		}
+		return "Yes", nil
+	}}
+
+	got, follow, err := RunQuestion(c, "test", "1", "ignored")
+	if err != nil {
 		t.Fatalf("RunQuestion: %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("expected one Ask call, got %d", calls)
 	}
 	if !got {
 		t.Fatalf("expected yes result")
@@ -35,19 +35,40 @@ func TestRunQuestionYes(t *testing.T) {
 }
 
 func TestRunQuestionNoFollowUp(t *testing.T) {
-	loadAPIKey(t)
 	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Respond only with the word 'No'. Requirement: %s.", FollowUp: "Reply with the word 'FollowUp'."}})
-	got, follow, err := RunQuestion("test", "1", "ignored")
-	if err != nil {
-		if strings.Contains(err.Error(), "Forbidden") {
-			t.Skipf("API access forbidden: %v", err)
+	call := 0
+	c := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		call++
+		switch call {
+		case 1:
+			expected := "Respond only with the word 'No'. Requirement: ignored."
+			if prompt != expected {
+				t.Fatalf("unexpected prompt %q", prompt)
+			}
+			return "No", nil
+		case 2:
+			expected := "Reply with the word 'FollowUp'."
+			if prompt != expected {
+				t.Fatalf("unexpected follow-up prompt %q", prompt)
+			}
+			return "FollowUp", nil
+		default:
+			t.Fatalf("unexpected call %d with prompt %q", call, prompt)
+			return "", nil
 		}
+	}}
+
+	got, follow, err := RunQuestion(c, "test", "1", "ignored")
+	if err != nil {
 		t.Fatalf("RunQuestion: %v", err)
+	}
+	if call != 2 {
+		t.Fatalf("expected two Ask calls, got %d", call)
 	}
 	if got {
 		t.Fatalf("expected false result")
 	}
-	if !strings.Contains(strings.ToLower(follow), "followup") {
+	if follow != "FollowUp" {
 		t.Fatalf("unexpected follow-up %q", follow)
 	}
 }

@@ -10,11 +10,11 @@ import (
 )
 
 // RunQuestion formats the question template for a role with the provided text
-// and asks it using Gemini's Ask API. It returns true when the response
+// and asks it using the supplied Gemini client. It returns true when the response
 // contains "yes". When the response contains "no" and the prompt defines a
 // follow-up question, the follow-up is sent and its response returned alongside
 // the false result.
-func RunQuestion(role, questionID, text string) (bool, string, error) {
+func RunQuestion(client gemini.Client, role, questionID, text string) (bool, string, error) {
 	ps, err := prompts.GetPrompts(role)
 	if err != nil {
 		return false, "", err
@@ -32,7 +32,7 @@ func RunQuestion(role, questionID, text string) (bool, string, error) {
 
 	for i := 0; i < 3; i++ {
 		prompt := fmt.Sprintf(p.Template, text)
-		resp, err := gemini.Ask(prompt)
+		resp, err := client.Ask(prompt)
 		if err != nil {
 			return false, "", err
 		}
@@ -44,7 +44,7 @@ func RunQuestion(role, questionID, text string) (bool, string, error) {
 			if p.FollowUp == "" {
 				return false, "", nil
 			}
-			follow, err := gemini.Ask(p.FollowUp)
+			follow, err := client.Ask(p.FollowUp)
 			if err != nil {
 				return false, "", err
 			}
