@@ -18,3 +18,5 @@ var devOpsPlatformPrompts = []Prompt{
 		FollowUp: "Which alerts are considered critical?",
 	},
 }
+
+func init() { RegisterRole("devops_platform", devOpsPlatformPrompts) }

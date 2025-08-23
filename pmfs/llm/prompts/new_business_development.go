@@ -18,3 +18,5 @@ var newBusinessDevelopmentPrompts = []Prompt{
 		FollowUp: "What metrics will indicate success?",
 	},
 }
+
+func init() { RegisterRole("new_business_development", newBusinessDevelopmentPrompts) }

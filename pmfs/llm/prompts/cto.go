@@ -19,3 +19,5 @@ var ctoPrompts = []Prompt{
 		FollowUp: "Where do you anticipate the most resource risk?",
 	},
 }
+
+func init() { RegisterRole("cto", ctoPrompts) }

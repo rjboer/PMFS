@@ -18,3 +18,5 @@ var safetyComplianceLeadPrompts = []Prompt{
 		FollowUp: "Who is responsible for ongoing audits?",
 	},
 }
+
+func init() { RegisterRole("safety_compliance_lead", safetyComplianceLeadPrompts) }

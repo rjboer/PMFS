@@ -19,3 +19,5 @@ var qaLeadPrompts = []Prompt{
 		FollowUp: "How will you maintain test cases over time?",
 	},
 }
+
+func init() { RegisterRole("qa_lead", qaLeadPrompts) }

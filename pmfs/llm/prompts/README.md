@@ -29,6 +29,11 @@ var devOpsPrompts = []Prompt{
 }
 ```
 
-3. Update the `GetPrompts` function in `prompts.go` to return the slice for the new role.
+3. Register the role in an `init` function:
+
+```go
+func init() { RegisterRole("dev_ops", devOpsPrompts) }
+```
+
 4. Document the role in the "Role Descriptions" section above.
 

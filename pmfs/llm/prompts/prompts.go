@@ -21,41 +21,31 @@ type Prompt struct {
 // It is populated by tests via SetTestPrompts and is ignored in normal use.
 var testPrompts []Prompt
 
+// rolePrompts maps a role name to its registered prompts.
+var rolePrompts = map[string][]Prompt{}
+
+// RegisterRole registers prompts for a given role. Role names are stored in
+// lowercase to ensure case-insensitive lookups.
+func RegisterRole(role string, prompts []Prompt) {
+	rolePrompts[strings.ToLower(role)] = prompts
+}
+
 // SetTestPrompts registers prompts used when GetPrompts is called with role "test".
 // It allows integration tests to supply deterministic questions and follow-ups.
 func SetTestPrompts(ps []Prompt) { testPrompts = ps }
 
 // GetPrompts returns prompts for the given role or an error if the role is unknown.
 func GetPrompts(role string) ([]Prompt, error) {
-	switch strings.ToLower(role) {
-	case "cto":
-		return ctoPrompts, nil
-	case "devops_platform":
-		return devOpsPlatformPrompts, nil
-	case "ml_llm_engineer":
-		return mlLlmEngineerPrompts, nil
-	case "new_business_development":
-		return newBusinessDevelopmentPrompts, nil
-	case "product_manager":
-		return productManagerPrompts, nil
-	case "qa_lead":
-		return qaLeadPrompts, nil
-	case "sales":
-		return salesPrompts, nil
-	case "safety_compliance_lead":
-		return safetyComplianceLeadPrompts, nil
-	case "security_privacy_officer":
-		return securityPrivacyOfficerPrompts, nil
-	case "solution_architect":
-		return solutionArchitectPrompts, nil
-	case "ux_tech_writer":
-		return uxTechWriterPrompts, nil
-	case "test":
+	r := strings.ToLower(role)
+	if r == "test" {
 		if testPrompts == nil {
 			return nil, fmt.Errorf("test prompts not set")
 		}
 		return testPrompts, nil
-	default:
+	}
+	ps, ok := rolePrompts[r]
+	if !ok {
 		return nil, fmt.Errorf("unknown role: %s", role)
 	}
+	return ps, nil
 }

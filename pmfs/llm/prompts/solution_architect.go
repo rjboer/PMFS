@@ -19,3 +19,5 @@ var solutionArchitectPrompts = []Prompt{
 		FollowUp: "What standards will be applied to ensure security compliance?",
 	},
 }
+
+func init() { RegisterRole("solution_architect", solutionArchitectPrompts) }

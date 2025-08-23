@@ -18,3 +18,5 @@ var securityPrivacyOfficerPrompts = []Prompt{
 		FollowUp: "What is the plan for notifying stakeholders?",
 	},
 }
+
+func init() { RegisterRole("security_privacy_officer", securityPrivacyOfficerPrompts) }

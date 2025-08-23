@@ -18,3 +18,5 @@ var uxTechWriterPrompts = []Prompt{
 		FollowUp: "What process will capture updates?",
 	},
 }
+
+func init() { RegisterRole("ux_tech_writer", uxTechWriterPrompts) }
