@@ -4,17 +4,17 @@ package prompts
 var salesPrompts = []Prompt{
 	{
 		ID:       "1",
-		Question: "What is the sales strategy for this product?",
+		Template: "Given the requirement %s, what is the sales strategy for this product?",
 		FollowUp: "Which channels will be prioritized?",
 	},
 	{
 		ID:       "2",
-		Question: "How will you handle customer objections?",
+		Template: "Given the requirement %s, how will you handle customer objections?",
 		FollowUp: "What resources do you need to address them?",
 	},
 	{
 		ID:       "3",
-		Question: "What tools will support the sales team?",
+		Template: "Given the requirement %s, what tools will support the sales team?",
 		FollowUp: "How will you measure their effectiveness?",
 	},
 }
