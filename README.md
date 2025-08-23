@@ -95,6 +95,12 @@ func main() {
 }
 ```
 
+A runnable sample program lives in `examples/basic` and can be run with:
+
+```bash
+ go run ./examples/basic
+```
+
 ## Available Functions
 
 - `EnsureLayout()`
