@@ -101,6 +101,12 @@ A runnable sample program lives in `examples/basic` and can be run with:
  go run ./examples/basic
 ```
 
+An example demonstrating the Gemini client lives in `examples/gemini` and can be run with:
+
+```bash
+go run ./examples/gemini
+```
+
 ## Available Functions
 
 - `EnsureLayout()`
