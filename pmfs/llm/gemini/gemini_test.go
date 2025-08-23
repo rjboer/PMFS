@@ -96,14 +96,11 @@ func TestRequirementUnmarshalStringID(t *testing.T) {
 }
 
 func TestRequirementUnmarshalNonNumericID(t *testing.T) {
-	data := []byte(`[{"id":"REQ-1","name":"N","description":"D"}]`)
-	var reqs []Requirement
-	if err := json.Unmarshal(data, &reqs); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if len(reqs) != 1 || reqs[0].ID != 0 {
-		t.Fatalf("unexpected requirements: %#v", reqs)
-	}
+        data := []byte(`[{"id":"REQ-1","name":"N","description":"D"}]`)
+        var reqs []Requirement
+        if err := json.Unmarshal(data, &reqs); err == nil {
+                t.Fatalf("expected error for non-numeric id")
+        }
 }
 
 func sameRequirements(a, b []Requirement) bool {

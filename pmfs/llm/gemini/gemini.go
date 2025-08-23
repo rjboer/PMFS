@@ -1,46 +1,25 @@
 package gemini
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"mime"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
+        "bytes"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "io"
+        "mime"
+        "mime/multipart"
+        "net/http"
+        "os"
+        "path/filepath"
+        "strings"
+        "time"
 )
 
 // Requirement represents a potential requirement returned by Gemini.
 type Requirement struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-func (r *Requirement) UnmarshalJSON(data []byte) error {
-	type Alias Requirement
-	aux := struct {
-		ID any `json:"id"`
-		*Alias
-	}{Alias: (*Alias)(r)}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	switch v := aux.ID.(type) {
-	case float64:
-		r.ID = int(v)
-	case string:
-		if i, err := strconv.Atoi(v); err == nil {
-			r.ID = i
-		}
-	}
-	return nil
+        ID          int    `json:"id,string"`
+        Name        string `json:"name"`
+        Description string `json:"description"`
 }
 
 // Client defines the behavior needed to analyze attachments.
