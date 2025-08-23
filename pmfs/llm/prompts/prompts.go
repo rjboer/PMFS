@@ -30,10 +30,26 @@ func GetPrompts(role string) ([]Prompt, error) {
 	switch strings.ToLower(role) {
 	case "cto":
 		return ctoPrompts, nil
-	case "solution_architect":
-		return solutionArchitectPrompts, nil
+	case "devops_platform":
+		return devOpsPlatformPrompts, nil
+	case "ml_llm_engineer":
+		return mlLlmEngineerPrompts, nil
+	case "new_business_development":
+		return newBusinessDevelopmentPrompts, nil
+	case "product_manager":
+		return productManagerPrompts, nil
 	case "qa_lead":
 		return qaLeadPrompts, nil
+	case "sales":
+		return salesPrompts, nil
+	case "safety_compliance_lead":
+		return safetyComplianceLeadPrompts, nil
+	case "security_privacy_officer":
+		return securityPrivacyOfficerPrompts, nil
+	case "solution_architect":
+		return solutionArchitectPrompts, nil
+	case "ux_tech_writer":
+		return uxTechWriterPrompts, nil
 	case "test":
 		if testPrompts == nil {
 			return nil, fmt.Errorf("test prompts not set")
