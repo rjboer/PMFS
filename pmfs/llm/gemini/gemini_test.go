@@ -106,6 +106,7 @@ func TestRequirementUnmarshalNonNumericID(t *testing.T) {
 	}
 }
 
+
 func sameRequirements(a, b []Requirement) bool {
 	if len(a) != len(b) {
 		return false
