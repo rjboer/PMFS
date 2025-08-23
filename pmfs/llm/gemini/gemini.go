@@ -43,31 +43,31 @@ func (r *Requirement) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Client defines the behavior needed to analyze attachments.
-type Client interface {
+// Analyzer defines the behavior needed to analyze attachments.
+type Analyzer interface {
 	AnalyzeAttachment(path string) ([]Requirement, error)
 }
 
-// ClientFunc allows using ordinary functions as Client.
+// ClientFunc allows using ordinary functions as Analyzer.
 type ClientFunc func(string) ([]Requirement, error)
 
-// AnalyzeAttachment satisfies Client interface.
+// AnalyzeAttachment satisfies Analyzer interface.
 func (f ClientFunc) AnalyzeAttachment(path string) ([]Requirement, error) {
 	return f(path)
 }
 
-var client Client = &RESTClient{}
+var analyzer Analyzer = &RESTClient{}
 
-// SetClient replaces the package's client, returning the previous one.
-func SetClient(c Client) Client {
-	old := client
-	client = c
+// SetClient replaces the package's analyzer, returning the previous one.
+func SetClient(a Analyzer) Analyzer {
+	old := analyzer
+	analyzer = a
 	return old
 }
 
-// AnalyzeAttachment uploads and analyzes the file at path using the configured client.
+// AnalyzeAttachment uploads and analyzes the file at path using the configured analyzer.
 func AnalyzeAttachment(path string) ([]Requirement, error) {
-	return client.AnalyzeAttachment(path)
+	return analyzer.AnalyzeAttachment(path)
 }
 
 // RESTClient implements Client using Gemini's REST API.
