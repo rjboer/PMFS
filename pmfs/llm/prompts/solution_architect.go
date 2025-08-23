@@ -5,17 +5,17 @@ package prompts
 var solutionArchitectPrompts = []Prompt{
 	{
 		ID:       "1",
-		Question: "What architecture patterns are most suitable for this solution?",
+		Template: "Given the requirement %s, what architecture patterns are most suitable for this solution?",
 		FollowUp: "Why do these patterns fit the requirements?",
 	},
 	{
 		ID:       "2",
-		Question: "How will you ensure scalability in the design?",
+		Template: "Given the requirement %s, how will you ensure scalability in the design?",
 		FollowUp: "Which components are critical for scaling?",
 	},
 	{
 		ID:       "3",
-		Question: "How are security concerns integrated into the architecture?",
+		Template: "Given the requirement %s, how are security concerns integrated into the architecture?",
 		FollowUp: "What standards will be applied to ensure security compliance?",
 	},
 }

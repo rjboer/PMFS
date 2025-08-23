@@ -18,8 +18,8 @@ func loadAPIKey(t *testing.T) {
 
 func TestRunQuestionYes(t *testing.T) {
 	loadAPIKey(t)
-	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Question: "Respond only with the word 'Yes'."}})
-	got, follow, err := RunQuestion("test", "1")
+	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Respond only with the word 'Yes'. Requirement: %s."}})
+	got, follow, err := RunQuestion("test", "1", "ignored")
 	if err != nil {
 		if strings.Contains(err.Error(), "Forbidden") {
 			t.Skipf("API access forbidden: %v", err)
@@ -36,8 +36,8 @@ func TestRunQuestionYes(t *testing.T) {
 
 func TestRunQuestionNoFollowUp(t *testing.T) {
 	loadAPIKey(t)
-	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Question: "Respond only with the word 'No'.", FollowUp: "Reply with the word 'FollowUp'."}})
-	got, follow, err := RunQuestion("test", "1")
+	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Respond only with the word 'No'. Requirement: %s.", FollowUp: "Reply with the word 'FollowUp'."}})
+	got, follow, err := RunQuestion("test", "1", "ignored")
 	if err != nil {
 		if strings.Contains(err.Error(), "Forbidden") {
 			t.Skipf("API access forbidden: %v", err)

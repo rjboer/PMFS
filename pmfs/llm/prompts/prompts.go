@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-// Prompt defines an interaction with a role-specific question and optional follow-up.
+// Prompt defines an interaction with a role-specific question template and optional follow-up.
 type Prompt struct {
 	ID       string
-	Question string
+	Template string
 	FollowUp string // asked when the initial answer is "No"
 }
 
