@@ -87,9 +87,9 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	// mock Gemini client to avoid external calls
-	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return nil, nil
-	}))
+	}})
 	defer gemini.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
@@ -158,9 +158,9 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
-	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return mockReqs, nil
-	}))
+	}})
 	defer gemini.SetClient(orig)
 
 	dir := t.TempDir()
@@ -309,9 +309,9 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 
-	orig := gemini.SetClient(gemini.ClientFunc(func(path string) ([]gemini.Requirement, error) {
+	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return nil, nil
-	}))
+	}})
 	defer gemini.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")

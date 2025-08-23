@@ -40,6 +40,10 @@ func (t testClient) AnalyzeAttachment(path string) ([]Requirement, error) {
 	return []Requirement{{Name: t.name}}, nil
 }
 
+func (t testClient) Ask(prompt string) (string, error) {
+	return t.name, nil
+}
+
 func TestSetClientSwapsImplementation(t *testing.T) {
 	c1 := testClient{name: "first"}
 	c2 := testClient{name: "second"}
@@ -69,18 +73,34 @@ func TestSetClientSwapsImplementation(t *testing.T) {
 }
 
 func TestClientFuncAnalyzeAttachment(t *testing.T) {
-	cf := ClientFunc(func(path string) ([]Requirement, error) {
+	cf := ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]Requirement, error) {
 		if path != "file" {
 			t.Fatalf("unexpected path %q", path)
 		}
 		return []Requirement{{ID: 1, Name: "R"}}, nil
-	})
+	}}
 	reqs, err := cf.AnalyzeAttachment("file")
 	if err != nil {
 		t.Fatalf("AnalyzeAttachment: %v", err)
 	}
 	if len(reqs) != 1 || reqs[0].ID != 1 || reqs[0].Name != "R" {
 		t.Fatalf("unexpected requirements: %#v", reqs)
+	}
+}
+
+func TestClientFuncAsk(t *testing.T) {
+	cf := ClientFunc{AskFunc: func(prompt string) (string, error) {
+		if prompt != "p" {
+			t.Fatalf("unexpected prompt %q", prompt)
+		}
+		return "answer", nil
+	}}
+	ans, err := cf.Ask("p")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if ans != "answer" {
+		t.Fatalf("unexpected answer %q", ans)
 	}
 }
 
@@ -105,7 +125,6 @@ func TestRequirementUnmarshalNonNumericID(t *testing.T) {
 		t.Fatalf("unexpected requirements: %#v", reqs)
 	}
 }
-
 
 func sameRequirements(a, b []Requirement) bool {
 	if len(a) != len(b) {
