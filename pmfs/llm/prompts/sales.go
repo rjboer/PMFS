@@ -18,3 +18,5 @@ var salesPrompts = []Prompt{
 		FollowUp: "How will you measure their effectiveness?",
 	},
 }
+
+func init() { RegisterRole("sales", salesPrompts) }

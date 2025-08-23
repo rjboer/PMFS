@@ -18,3 +18,5 @@ var productManagerPrompts = []Prompt{
 		FollowUp: "Which channels will you use to gather feedback?",
 	},
 }
+
+func init() { RegisterRole("product_manager", productManagerPrompts) }

@@ -18,3 +18,5 @@ var mlLlmEngineerPrompts = []Prompt{
 		FollowUp: "What metrics define success?",
 	},
 }
+
+func init() { RegisterRole("ml_llm_engineer", mlLlmEngineerPrompts) }
