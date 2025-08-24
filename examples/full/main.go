@@ -1,0 +1,84 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
+	PMFS "github.com/rjboer/PMFS"
+	"github.com/rjboer/PMFS/pmfs/llm/gates"
+	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	"github.com/rjboer/PMFS/pmfs/llm/interact"
+)
+
+// This example demonstrates a full flow using Gemini to analyze a document,
+// storing the returned requirements, asking multiple role-specific questions
+// about each requirement, and evaluating them against quality gates.
+func main() {
+	// Stub the Gemini client so the example runs without external calls.
+	stub := gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			return []gemini.Requirement{
+				{ID: 1, Name: "Login", Description: "Users shall log in with email and password."},
+				{ID: 2, Name: "Logout", Description: "Users shall be able to log out securely."},
+			}, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			p := strings.ToLower(prompt)
+			if strings.Contains(p, "answer yes or no only") {
+				return "Yes", nil
+			}
+			if strings.Contains(p, "given the requirement") {
+				return "Yes", nil
+			}
+			return "stub response", nil
+		},
+	}
+	prev := gemini.SetClient(stub)
+	defer gemini.SetClient(prev)
+
+	// Analyze a document to extract potential requirements.
+	reqs, err := gemini.AnalyzeAttachment("testdata/spec1.txt")
+	if err != nil {
+		log.Fatalf("analyze: %v", err)
+	}
+	if len(reqs) == 0 {
+		log.Fatal("no requirements returned")
+	}
+
+	// Store the requirements in a project structure.
+	prj := PMFS.ProjectType{}
+	for _, r := range reqs {
+		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.Requirement{
+			Name:        r.Name,
+			Description: r.Description,
+		})
+	}
+
+	roles := []string{"product_manager", "qa_lead", "security_privacy_officer"}
+
+	// Ask each role about every requirement and evaluate quality gates.
+	for i, r := range prj.D.PotentialRequirements {
+		fmt.Printf("Requirement %d: %s - %s\n", i+1, r.Name, r.Description)
+		id := strconv.Itoa(i + 1)
+		for _, role := range roles {
+			pass, follow, err := interact.RunQuestion(stub, role, id, r.Description)
+			if err != nil {
+				log.Fatalf("run question: %v", err)
+			}
+			fmt.Printf("  %s agrees? %v\n", role, pass)
+			if follow != "" {
+				fmt.Printf("    Follow-up: %s\n", follow)
+			}
+		}
+
+		gateResults, err := gates.Evaluate(stub, []string{"clarity-form-1", "duplicate-1"}, r.Description)
+		if err != nil {
+			log.Fatalf("gates evaluate: %v", err)
+		}
+		for _, gr := range gateResults {
+			fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
+		}
+	}
+}

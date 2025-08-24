@@ -113,6 +113,12 @@ An example combining Gemini analysis, interactive questions, and gate evaluation
 go run ./examples/integration
 ```
 
+An extended example that analyzes attachments, asks multiple roles, and evaluates gates lives in `examples/full` and can be run with:
+
+```bash
+go run ./examples/full
+```
+
 ## Available Functions
 
 - `EnsureLayout()`
