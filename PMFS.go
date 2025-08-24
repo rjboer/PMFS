@@ -147,6 +147,14 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 	return nil
 }
 
+// FromGemini converts a Gemini requirement to a PMFS requirement.
+func FromGemini(req gemini.Requirement) Requirement {
+	return Requirement{
+		Name:        req.Name,
+		Description: req.Description,
+	}
+}
+
 // Attachment is minimal metadata about an ingested file.
 type Attachment struct {
 	ID       int       `json:"id" toml:"id"`
@@ -165,10 +173,7 @@ func (att *Attachment) Analyze(prj *ProjectType) error {
 		return err
 	}
 	for _, r := range reqs {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, Requirement{
-			Name:        r.Name,
-			Description: r.Description,
-		})
+		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, FromGemini(r))
 	}
 	att.Analyzed = true
 	return nil

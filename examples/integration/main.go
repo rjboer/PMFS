@@ -44,10 +44,7 @@ func main() {
 
 	// Store the first requirement in a project structure.
 	prj := PMFS.ProjectType{}
-	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.Requirement{
-		Name:        reqs[0].Name,
-		Description: reqs[0].Description,
-	})
+	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.FromGemini(reqs[0]))
 	r := prj.D.PotentialRequirements[0]
 	fmt.Printf("Requirement: %s - %s\n", r.Name, r.Description)
 

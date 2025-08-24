@@ -50,10 +50,7 @@ func main() {
 	// Store the requirements in a project structure.
 	prj := PMFS.ProjectType{}
 	for _, r := range reqs {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.Requirement{
-			Name:        r.Name,
-			Description: r.Description,
-		})
+		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.FromGemini(r))
 	}
 
 	roles := []string{"product_manager", "qa_lead", "security_privacy_officer"}
