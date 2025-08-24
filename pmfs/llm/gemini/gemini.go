@@ -106,6 +106,12 @@ type RESTClient struct {
 	APIKey     string
 }
 
+// NewRESTClient returns a RESTClient configured with the provided API key.
+// The HTTP client will be lazily initialized on first use.
+func NewRESTClient(apiKey string) Client {
+	return &RESTClient{APIKey: apiKey}
+}
+
 func (c *RESTClient) init() error {
 	if c.HTTPClient == nil {
 		c.HTTPClient = &http.Client{Timeout: 60 * time.Second}
