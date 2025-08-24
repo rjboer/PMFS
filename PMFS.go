@@ -16,6 +16,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	_ "github.com/rjboer/PMFS/internal/config"
+	"github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
@@ -132,6 +133,12 @@ type Requirement struct {
 // and returns the result.
 func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
 	return interact.RunQuestion(gemini.DefaultClient, role, questionID, r.Description)
+}
+
+// EvaluateGates runs the requirement's description through the specified gates
+// using the default Gemini client.
+func (r *Requirement) EvaluateGates(gateIDs []string) ([]gates.Result, error) {
+	return gates.EvaluateText(gateIDs, r.Description)
 }
 
 // Attachment is minimal metadata about an ingested file.

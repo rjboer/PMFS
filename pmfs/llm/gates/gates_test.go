@@ -86,3 +86,31 @@ func TestEvaluate(t *testing.T) {
 		t.Fatalf("unexpected follow-up %q", m["duplicate-1"].FollowUp)
 	}
 }
+
+func TestEvaluateText(t *testing.T) {
+	text := "The system shall log in users"
+	g1, _ := GetGate("clarity-form-1")
+	expected := fmt.Sprintf("Given the requirement %s, %s Answer yes or no.", text, g1.Question)
+
+	call := 0
+	c := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		call++
+		if prompt != expected {
+			t.Fatalf("unexpected prompt %q", prompt)
+		}
+		return "Yes", nil
+	}}
+	orig := gemini.SetClient(c)
+	defer gemini.SetClient(orig)
+
+	res, err := EvaluateText([]string{"clarity-form-1"}, text)
+	if err != nil {
+		t.Fatalf("EvaluateText: %v", err)
+	}
+	if len(res) != 1 || !res[0].Pass {
+		t.Fatalf("unexpected result: %#v", res)
+	}
+	if call != 1 {
+		t.Fatalf("expected 1 Ask call, got %d", call)
+	}
+}

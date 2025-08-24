@@ -15,6 +15,12 @@ type Result struct {
 	FollowUp string
 }
 
+// EvaluateText runs the specified gates using the default Gemini client.
+// It evaluates the given text and returns a Result for each gate.
+func EvaluateText(gateIDs []string, text string) ([]Result, error) {
+	return Evaluate(gemini.DefaultClient, gateIDs, text)
+}
+
 // Evaluate runs the specified gates against the provided text using the Gemini client.
 // It returns a Result for each gate in the same order as gateIDs.
 func Evaluate(client gemini.Client, gateIDs []string, text string) ([]Result, error) {

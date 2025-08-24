@@ -1,11 +1,13 @@
 package PMFS
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 
+	"github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
@@ -384,5 +386,34 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	}
 	if len(idxReload.Products) != 1 || len(idxReload.Products[0].Projects[0].D.Attachments) != len(files) {
 		t.Fatalf("attachments not loaded via LoadAllProjects: %#v", idxReload.Products[0].Projects[0].D.Attachments)
+	}
+}
+
+func TestRequirementEvaluateGates(t *testing.T) {
+	text := "The system shall log in users"
+	g1, _ := gates.GetGate("clarity-form-1")
+	expected := fmt.Sprintf("Given the requirement %s, %s Answer yes or no.", text, g1.Question)
+
+	call := 0
+	stub := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		call++
+		if prompt != expected {
+			t.Fatalf("unexpected prompt %q", prompt)
+		}
+		return "Yes", nil
+	}}
+	orig := gemini.SetClient(stub)
+	defer gemini.SetClient(orig)
+
+	r := Requirement{Description: text}
+	res, err := r.EvaluateGates([]string{"clarity-form-1"})
+	if err != nil {
+		t.Fatalf("EvaluateGates: %v", err)
+	}
+	if len(res) != 1 || !res[0].Pass {
+		t.Fatalf("unexpected result: %#v", res)
+	}
+	if call != 1 {
+		t.Fatalf("expected 1 Ask call, got %d", call)
 	}
 }

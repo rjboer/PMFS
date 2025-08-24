@@ -113,6 +113,24 @@ An example combining Gemini analysis, interactive questions, and gate evaluation
 go run ./examples/integration
 ```
 
+## Quality Gate Evaluation
+
+The `gates` package can assess requirement text against predefined yes/no
+checks. Use `Evaluate` when you want to provide your own Gemini client, or
+`EvaluateText` to rely on the package's default client.
+
+```go
+// Using a custom Gemini client
+res, err := gates.Evaluate(customClient, []string{"clarity-form-1"}, text)
+
+// Using the default Gemini client
+res, err = gates.EvaluateText([]string{"clarity-form-1"}, text)
+
+// From a Requirement instance
+r := PMFS.Requirement{Description: text}
+res, err = r.EvaluateGates([]string{"clarity-form-1"})
+```
+
 ## Available Functions
 
 - `EnsureLayout()`
