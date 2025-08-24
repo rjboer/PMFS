@@ -6,14 +6,14 @@ import (
 	"strings"
 
 	PMFS "github.com/rjboer/PMFS"
-	"github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
-	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
 
 // This example demonstrates a full flow using Gemini to analyze a document,
 // storing the returned requirement, asking a role-specific question about it,
-// and finally evaluating it against quality gates.
+// and finally evaluating it against quality gates. Once the Gemini client is
+// configured, requirement methods like Analyse and EvaluateGates can be called
+// directly without additional setup.
 func main() {
 	// Stub the Gemini client so the example runs without external calls.
 	stub := gemini.ClientFunc{
@@ -44,26 +44,25 @@ func main() {
 
 	// Store the first requirement in a project structure.
 	prj := PMFS.ProjectType{}
-	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.FromGemini(reqs[0]))
-	r := prj.D.PotentialRequirements[0]
+
+	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.Requirement{
+		Name:        reqs[0].Name,
+		Description: reqs[0].Description,
+	})
+	r := &prj.D.PotentialRequirements[0]
+
 	fmt.Printf("Requirement: %s - %s\n", r.Name, r.Description)
 
-	// Ask a QA lead if the requirement's testing strategy is acceptable.
-	pass, follow, err := interact.RunQuestion(stub, "qa_lead", "1", r.Description)
-	if err != nil {
-		log.Fatalf("run question: %v", err)
-	}
+	// With the client configured above, the requirement can query roles and
+	// evaluate gates directly.
+	pass, follow, _ := r.Analyse("qa_lead", "1")
 	fmt.Printf("QA Lead agrees? %v\n", pass)
 	if follow != "" {
 		fmt.Printf("Follow-up: %s\n", follow)
 	}
 
-	// Evaluate the requirement against quality gates.
-	gateResults, err := gates.Evaluate(stub, []string{"clarity-form-1", "duplicate-1"}, r.Description)
-	if err != nil {
-		log.Fatalf("gates evaluate: %v", err)
-	}
-	for _, gr := range gateResults {
+	_ = r.EvaluateGates([]string{"clarity-form-1", "duplicate-1"})
+	for _, gr := range r.GateResults {
 		fmt.Printf("Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
 	}
 }

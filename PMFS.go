@@ -1,6 +1,7 @@
 package PMFS
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -147,12 +148,20 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 	return nil
 }
 
-// FromGemini converts a Gemini requirement to a PMFS requirement.
-func FromGemini(req gemini.Requirement) Requirement {
-	return Requirement{
-		Name:        req.Name,
-		Description: req.Description,
+
+// SuggestOthers asks the client for related potential requirements based on
+// this requirement's description and returns them.
+func (r *Requirement) SuggestOthers(client gemini.Client) ([]Requirement, error) {
+	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
+	resp, err := client.Ask(prompt)
+	if err != nil {
+		return nil, err
 	}
+	var reqs []Requirement
+	if err := json.Unmarshal([]byte(resp), &reqs); err != nil {
+		return nil, err
+	}
+	return reqs, nil
 }
 
 // Attachment is minimal metadata about an ingested file.

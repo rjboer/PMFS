@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	PMFS "github.com/rjboer/PMFS"
-	"github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
-	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
 
 // This example demonstrates a full flow using Gemini to analyze a document,
 // storing the returned requirements, asking multiple role-specific questions
-// about each requirement, and evaluating them against quality gates.
+// about each requirement, and evaluating them against quality gates. After the
+// Gemini client is configured, requirement methods can be used directly without
+// passing the client to interact or gates packages.
 func main() {
 	// Stub the Gemini client so the example runs without external calls.
 	stub := gemini.ClientFunc{
@@ -56,25 +56,20 @@ func main() {
 	roles := []string{"product_manager", "qa_lead", "security_privacy_officer"}
 
 	// Ask each role about every requirement and evaluate quality gates.
-	for i, r := range prj.D.PotentialRequirements {
+	for i := range prj.D.PotentialRequirements {
+		r := &prj.D.PotentialRequirements[i]
 		fmt.Printf("Requirement %d: %s - %s\n", i+1, r.Name, r.Description)
 		id := strconv.Itoa(i + 1)
 		for _, role := range roles {
-			pass, follow, err := interact.RunQuestion(stub, role, id, r.Description)
-			if err != nil {
-				log.Fatalf("run question: %v", err)
-			}
+			pass, follow, _ := r.Analyse(role, id)
 			fmt.Printf("  %s agrees? %v\n", role, pass)
 			if follow != "" {
 				fmt.Printf("    Follow-up: %s\n", follow)
 			}
 		}
 
-		gateResults, err := gates.Evaluate(stub, []string{"clarity-form-1", "duplicate-1"}, r.Description)
-		if err != nil {
-			log.Fatalf("gates evaluate: %v", err)
-		}
-		for _, gr := range gateResults {
+		_ = r.EvaluateGates([]string{"clarity-form-1", "duplicate-1"})
+		for _, gr := range r.GateResults {
 			fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
 		}
 	}
