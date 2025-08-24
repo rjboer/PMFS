@@ -148,7 +148,6 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 	return nil
 }
 
-
 // SuggestOthers asks the client for related potential requirements based on
 // this requirement's description and returns them.
 func (r *Requirement) SuggestOthers(client gemini.Client) ([]Requirement, error) {
@@ -162,6 +161,16 @@ func (r *Requirement) SuggestOthers(client gemini.Client) ([]Requirement, error)
 		return nil, err
 	}
 	return reqs, nil
+}
+
+// FromGemini converts a Gemini requirement into a PMFS requirement.
+// Only the ID, name, and description fields are mapped.
+func FromGemini(req gemini.Requirement) Requirement {
+	return Requirement{
+		ID:          req.ID,
+		Name:        req.Name,
+		Description: req.Description,
+	}
 }
 
 // Attachment is minimal metadata about an ingested file.

@@ -32,6 +32,13 @@ Required variables:
 - `PMFS_BASEDIR` – base directory used to store PMFS data.
 - `GEMINI_API_KEY` – API key for Gemini integrations.
 
+### LLM Client Wrappers
+
+PMFS talks to language models through small wrapper packages. The default
+implementation uses Google's Gemini via `pmfs/llm/gemini`, but the `Client`
+interface and its `ClientFunc` adapter make it easy to plug in other
+providers or to mock responses in tests.
+
 ## Directory Structure
 
 The backend stores its data in a folder called `database`. Inside it, each product gets its own subdirectory and keeps an `index.toml` of projects.
