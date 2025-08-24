@@ -131,6 +131,15 @@ type Requirement struct {
 	Tags []string `json:"tags,omitempty" toml:"tags"`
 }
 
+// FromGemini converts a Gemini requirement into a PMFS requirement.
+func FromGemini(req gemini.Requirement) Requirement {
+	return Requirement{
+		ID:          req.ID,
+		Name:        req.Name,
+		Description: req.Description,
+	}
+}
+
 // Analyse sends the requirement description to the provided role/question pair
 // and returns the result.
 func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
@@ -147,7 +156,6 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 	r.GateResults = res
 	return nil
 }
-
 
 // SuggestOthers asks the client for related potential requirements based on
 // this requirement's description and returns them.
