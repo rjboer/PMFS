@@ -15,6 +15,22 @@ Its primary goal is to extract potential software requirements from uploaded doc
 | `func Ask(prompt string) (string, error)` | Convenience wrapper calling `client.Ask`. |
 | `type RESTClient` | Default client implementation using Gemini’s REST API. Important methods: `init`, `AnalyzeAttachment`, `Ask`, `upload`, `generateFile`, `generateText`, `generate`. |
 
+## Usage
+
+The package uses `RESTClient` by default. If the `GEMINI_API_KEY` environment
+variable is set, calls to `AnalyzeAttachment` and `Ask` automatically hit
+Gemini; no `SetClient` call is required for production use.
+
+`SetClient` exists so tests or other backends can inject a stub client. The
+examples in this repository do this so they can run offline. Remove the
+`SetClient` block and ensure `GEMINI_API_KEY` is defined to exercise the real
+API.
+
+Real API flows are demonstrated in
+[`examples/gemini`](../../examples/gemini),
+[`examples/integration`](../../examples/integration), and
+[`examples/full`](../../examples/full).
+
 ## Writing Your Own Backend
 
 To swap out Gemini or integrate with another service, implement the `Client` interface:

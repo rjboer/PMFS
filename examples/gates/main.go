@@ -8,9 +8,11 @@ import (
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
-// This example demonstrates evaluating a requirement against a gate.
+// This example demonstrates evaluating a requirement against a gate. Remove
+// the stub below and set GEMINI_API_KEY to query the real API.
 func main() {
 	// Stub Gemini client so the example runs without external calls.
+	// Delete this block to use the live API.
 	stub := gemini.ClientFunc{
 		AskFunc: func(prompt string) (string, error) {
 			return "Yes", nil

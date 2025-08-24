@@ -9,7 +9,9 @@ import (
 
 // This example demonstrates using the Gemini client to analyze a document
 // and answer a free-form question. It swaps in a stub client so the example
-// runs without calling the real API.
+// runs without calling the real API. For production, remove the SetClient
+// block and ensure GEMINI_API_KEY is set; the default client will then invoke
+// Gemini directly.
 func main() {
 	prev := gemini.SetClient(gemini.ClientFunc{
 		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {

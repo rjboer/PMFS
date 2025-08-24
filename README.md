@@ -32,6 +32,10 @@ Required variables:
 - `PMFS_BASEDIR` – base directory used to store PMFS data.
 - `GEMINI_API_KEY` – API key for Gemini integrations.
 
+The default Gemini client reads `GEMINI_API_KEY` automatically. When this
+variable is set, package functions will use the live API without any
+`SetClient` call.
+
 ## Directory Structure
 
 The backend stores its data in a folder called `database`. Inside it, each product gets its own subdirectory and keeps an `index.toml` of projects.
@@ -106,6 +110,11 @@ An example demonstrating the Gemini client lives in `examples/gemini` and can be
 ```bash
 go run ./examples/gemini
 ```
+
+All Gemini-related examples replace the client with a stub so they can run
+offline. Remove those `SetClient` blocks and ensure `GEMINI_API_KEY` is set to
+call the real API. Real API flows are illustrated in `examples/gemini`,
+`examples/integration`, and `examples/full`.
 
 An example combining Gemini analysis, interactive questions, and gate evaluation lives in `examples/integration` and can be run with:
 
