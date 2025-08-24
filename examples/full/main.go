@@ -14,9 +14,11 @@ import (
 // storing the returned requirements, asking multiple role-specific questions
 // about each requirement, and evaluating them against quality gates. After the
 // Gemini client is configured, requirement methods can be used directly without
-// passing the client to interact or gates packages.
+// passing the client to interact or gates packages. Remove the stub below and
+// set GEMINI_API_KEY to call the real API with the default client.
 func main() {
 	// Stub the Gemini client so the example runs without external calls.
+	// Delete this block for live API calls.
 	stub := gemini.ClientFunc{
 		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 			return []gemini.Requirement{

@@ -9,9 +9,11 @@ import (
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
-// This example demonstrates analysing an attachment with a role-specific question.
+// This example demonstrates analysing an attachment with a role-specific
+// question. Remove the stub below and set GEMINI_API_KEY to use the real API.
 func main() {
 	// Stub Gemini client so the example runs without external calls.
+	// Delete this block for live API calls.
 	stub := gemini.ClientFunc{
 		AskFunc: func(prompt string) (string, error) {
 			if strings.Contains(strings.ToLower(prompt), "answer yes or no only") {
