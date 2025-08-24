@@ -37,16 +37,20 @@ func main() {
 	}
 	prev := gemini.SetClient(stub)
 	defer gemini.SetClient(prev)
-	PMFS.SetBaseDir(".")
-	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
-	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
 	// Analyze a document to extract potential requirements.
-	if err := att.Analyze(&prj); err != nil {
+	reqs, err := gemini.AnalyzeAttachment("testdata/spec1.txt")
+	if err != nil {
 		log.Fatalf("analyze: %v", err)
 	}
-	if len(prj.D.PotentialRequirements) == 0 {
+	if len(reqs) == 0 {
 		log.Fatal("no requirements returned")
+	}
+
+	// Store the requirements in a project structure.
+	prj := PMFS.ProjectType{}
+	for _, r := range reqs {
+		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.FromGemini(r))
 	}
 
 	roles := []string{"product_manager", "qa_lead", "security_privacy_officer"}
