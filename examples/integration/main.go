@@ -44,11 +44,13 @@ func main() {
 
 	// Store the first requirement in a project structure.
 	prj := PMFS.ProjectType{}
+
 	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.Requirement{
 		Name:        reqs[0].Name,
 		Description: reqs[0].Description,
 	})
 	r := &prj.D.PotentialRequirements[0]
+
 	fmt.Printf("Requirement: %s - %s\n", r.Name, r.Description)
 
 	// With the client configured above, the requirement can query roles and

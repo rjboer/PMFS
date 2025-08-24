@@ -132,6 +132,7 @@ go run ./examples/full
 - `(*Index) LoadAllProjects() error`
 - `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
 - `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
+- `FromGemini(req gemini.Requirement) Requirement`
 
 See [FUNCTIONS.md](FUNCTIONS.md) for detailed descriptions.
 
