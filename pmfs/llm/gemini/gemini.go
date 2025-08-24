@@ -76,12 +76,17 @@ func (f ClientFunc) Ask(prompt string) (string, error) {
 	return f.AskFunc(prompt)
 }
 
-var client Client = &RESTClient{}
+// DefaultClient is the package's default Gemini client.
+var (
+	DefaultClient Client = &RESTClient{}
+	client        Client = DefaultClient
+)
 
 // SetClient replaces the package's client, returning the previous one.
 func SetClient(c Client) Client {
 	old := client
 	client = c
+	DefaultClient = c
 	return old
 }
 

@@ -11,12 +11,13 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pelletier/go-toml/v2"
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	_ "github.com/rjboer/PMFS/internal/config"
-
+	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
 
 // -----------------------------------------------------------------------------
@@ -127,6 +128,12 @@ type Requirement struct {
 	Tags []string `json:"tags,omitempty" toml:"tags"`
 }
 
+// Analyse sends the requirement description to the provided role/question pair
+// and returns the result.
+func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
+	return interact.RunQuestion(gemini.DefaultClient, role, questionID, r.Description)
+}
+
 // Attachment is minimal metadata about an ingested file.
 type Attachment struct {
 	ID       int       `json:"id" toml:"id"`
@@ -152,6 +159,39 @@ func (att *Attachment) Analyze(prj *ProjectType) error {
 	}
 	att.Analyzed = true
 	return nil
+}
+
+// Analyse loads the attachment content and asks a role-specific question about it.
+// For text files the content is read directly; for other files existing upload
+// logic is used to extract textual content before querying the LLM.
+func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
+	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
+	if i := strings.Index(mt, ";"); i >= 0 {
+		mt = mt[:i]
+	}
+	var content string
+	if strings.HasPrefix(mt, "text/") {
+		b, err := os.ReadFile(full)
+		if err != nil {
+			return false, "", err
+		}
+		content = string(b)
+	} else {
+		reqs, err := gemini.AnalyzeAttachment(full)
+		if err != nil {
+			return false, "", err
+		}
+		var sb strings.Builder
+		for _, r := range reqs {
+			sb.WriteString(r.Name)
+			sb.WriteString(": ")
+			sb.WriteString(r.Description)
+			sb.WriteString("\n")
+		}
+		content = sb.String()
+	}
+	return interact.RunQuestion(gemini.DefaultClient, role, questionID, content)
 }
 
 // ChangeLog records a change made to a requirement.
