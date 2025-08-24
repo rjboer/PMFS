@@ -1,11 +1,8 @@
 package gates
 
 import (
-	"fmt"
-
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
-	"github.com/rjboer/PMFS/pmfs/llm/prompts"
 )
 
 // Result holds the outcome of a gate evaluation.
@@ -24,9 +21,7 @@ func Evaluate(client gemini.Client, gateIDs []string, text string) ([]Result, er
 		if err != nil {
 			return nil, err
 		}
-		template := fmt.Sprintf("Given the requirement %%s, %s Answer yes or no.", g.Question)
-		prompts.SetTestPrompts([]prompts.Prompt{{ID: g.ID, Template: template, FollowUp: g.FollowUp}})
-		pass, follow, err := interact.RunQuestion(client, "test", g.ID, text)
+		pass, follow, err := interact.RunQuestion(client, "quality_gate", g.ID, text)
 		if err != nil {
 			return nil, err
 		}
