@@ -16,6 +16,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	_ "github.com/rjboer/PMFS/internal/config"
+	gates "github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
@@ -124,6 +125,7 @@ type Requirement struct {
 	Category         string          `json:"category" toml:"category"`   // e.g., "System Requirements"
 	History          []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
 	IntelligenceLink []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
+	GateResults      []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
 	// Optional: Tags can help with flexible categorization or filtering.
 	Tags []string `json:"tags,omitempty" toml:"tags"`
 }
@@ -132,6 +134,17 @@ type Requirement struct {
 // and returns the result.
 func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
 	return interact.RunQuestion(gemini.DefaultClient, role, questionID, r.Description)
+}
+
+// EvaluateGates runs the specified gates against the requirement description
+// and stores the results on the requirement.
+func (r *Requirement) EvaluateGates(gateIDs []string) error {
+	res, err := gates.Evaluate(gemini.DefaultClient, gateIDs, r.Description)
+	if err != nil {
+		return err
+	}
+	r.GateResults = res
+	return nil
 }
 
 // Attachment is minimal metadata about an ingested file.
