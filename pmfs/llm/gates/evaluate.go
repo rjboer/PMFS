@@ -1,7 +1,7 @@
 package gates
 
 import (
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
 
@@ -12,9 +12,9 @@ type Result struct {
 	FollowUp string
 }
 
-// Evaluate runs the specified gates against the provided text using the Gemini client.
+// Evaluate runs the specified gates against the provided text using the LLM client.
 // It returns a Result for each gate in the same order as gateIDs.
-func Evaluate(client gemini.Client, gateIDs []string, text string) ([]Result, error) {
+func Evaluate(client llm.Client, gateIDs []string, text string) ([]Result, error) {
 	var results []Result
 	for _, id := range gateIDs {
 		g, err := GetGate(id)

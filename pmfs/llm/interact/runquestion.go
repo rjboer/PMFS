@@ -6,16 +6,16 @@ import (
 	"regexp"
 	"strings"
 
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	"github.com/rjboer/PMFS/pmfs/llm/prompts"
 )
 
 // RunQuestion formats the question template for a role with the provided text
-// and asks it using the supplied Gemini client. It returns true when the response
+// and asks it using the supplied LLM client. It returns true when the response
 // contains "yes". When the response contains "no" and the prompt defines a
 // follow-up question, the follow-up is sent and its response returned alongside
 // the false result.
-func RunQuestion(client gemini.Client, role, questionID, text string) (bool, string, error) {
+func RunQuestion(client llm.Client, role, questionID, text string) (bool, string, error) {
 	ps, err := prompts.GetPrompts(role)
 	if err != nil {
 		return false, "", err
