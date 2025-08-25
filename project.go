@@ -2,12 +2,10 @@ package PMFS
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
-
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pelletier/go-toml/v2"
 	_ "github.com/rjboer/PMFS/internal/config"
 	llm "github.com/rjboer/PMFS/pmfs/llm"
 	gates "github.com/rjboer/PMFS/pmfs/llm/gates"
@@ -23,66 +20,8 @@ import (
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
 )
 
-// -----------------------------------------------------------------------------
-// Constants & paths
-// -----------------------------------------------------------------------------
-
-const (
-	productsDir   = "products"
-	indexFilename = "index.toml"
-	projectTOML   = "project.toml"
-	envBaseDir    = "PMFS_BASEDIR"
-)
-
-var (
-	baseDir         = defaultBaseDir()
-	baseProductsDir string
-	indexPath       string
-
-	ErrProductNotFound = errors.New("product not found")
-	ErrProjectNotFound = errors.New("project not found")
-)
-
-func init() {
-	setBaseDir(baseDir)
-}
-
-func defaultBaseDir() string {
-	if dir := os.Getenv(envBaseDir); dir != "" {
-		return dir
-	}
-	return "database"
-}
-
-// SetBaseDir overrides the base data directory and updates internal paths.
-func SetBaseDir(dir string) {
-	baseDir = dir
-	setBaseDir(dir)
-}
-
-func setBaseDir(dir string) {
-	baseProductsDir = filepath.Join(dir, productsDir)
-	indexPath = filepath.Join(baseProductsDir, indexFilename)
-}
-
-// -----------------------------------------------------------------------------
-// Memory model
-// -----------------------------------------------------------------------------
-
-// Index is a minimal placeholder for products list.
-// Next IDs are derived from len(products)+1.
-type Index struct {
-	Products []ProductType `toml:"products"`
-}
-
-type ProductType struct {
-	ID       int           `toml:"id"`
-	Name     string        `toml:"name"`
-	Projects []ProjectType `toml:"projects"`
-}
-
-// ProjectType is the project's memory model placeholder.
-type ProjectType struct {
+// Project is the project's memory model placeholder.
+type Project struct {
 	ID        int    `json:"id" toml:"id"`
 	ProductID int    `json:"productid" toml:"productid"`
 	Name      string `json:"name" toml:"name"`
@@ -144,13 +83,13 @@ func FromGemini(req gemini.Requirement) Requirement {
 
 // Analyse sends the requirement description to the provided role/question pair
 // using the project's configured LLM and returns the result.
-func (r *Requirement) Analyse(prj *ProjectType, role, questionID string) (bool, string, error) {
+func (r *Requirement) Analyse(prj *Project, role, questionID string) (bool, string, error) {
 	return interact.RunQuestion(prj.LLM, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
 // using the project's configured LLM and stores the results on the requirement.
-func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
+func (r *Requirement) EvaluateGates(prj *Project, gateIDs []string) error {
 	res, err := gates.Evaluate(prj.LLM, gateIDs, r.Description)
 	if err != nil {
 		return err
@@ -185,7 +124,7 @@ type Attachment struct {
 }
 
 // Analyze processes the attachment with Gemini and appends proposed requirements.
-func (att *Attachment) Analyze(prj *ProjectType) error {
+func (att *Attachment) Analyze(prj *Project) error {
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
 	if err != nil {
@@ -201,7 +140,7 @@ func (att *Attachment) Analyze(prj *ProjectType) error {
 // Analyse loads the attachment content and asks a role-specific question about it.
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
-func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
+func (att *Attachment) Analyse(role, questionID string, prj *Project) (bool, string, error) {
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
 	if i := strings.Index(mt, ";"); i >= 0 {
@@ -249,131 +188,7 @@ type Intelligence struct {
 	ExtractedAt time.Time `json:"extracted_at" toml:"extracted_at"`
 }
 
-// -----------------------------------------------------------------------------
-// Init helpers
-// -----------------------------------------------------------------------------
-//
-// EnsureLayout creates base folder structure and ensures index.toml exists.
-func EnsureLayout() error {
-	if err := os.MkdirAll(baseProductsDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir %s: %w", baseProductsDir, err)
-	}
-	// Create empty index if missing.
-	if ok, err := fileExists(indexPath); err != nil {
-		return err
-	} else if !ok {
-		idx := Index{Products: []ProductType{}}
-		if err := writeTOML(indexPath, &idx); err != nil {
-			return fmt.Errorf("write index.toml: %w", err)
-		}
-	}
-	return nil
-}
-
-// LoadIndex reads index.toml into the shallow model.
-func LoadIndex() (Index, error) {
-	var idx Index
-	if err := readTOML(indexPath, &idx); err != nil {
-		if os.IsNotExist(err) {
-			// Create a fresh one if missing (keeps flow simple)
-			idx = Index{Products: []ProductType{}}
-			if werr := writeTOML(indexPath, &idx); werr != nil {
-				return idx, werr
-			}
-			return idx, nil
-		}
-		return idx, fmt.Errorf("read index.toml: %w", err)
-	}
-	if idx.Products == nil {
-		idx.Products = []ProductType{}
-	}
-	return idx, nil
-}
-
-// -----------------------------------------------------------------------------
-// Public ops (global/exported)
-// -----------------------------------------------------------------------------
-
-// AddProduct appends a product to the index and creates its directory skeleton.
-// ProductID = len(idx.Products) + 1
-func (idx *Index) AddProduct(name string) error {
-	if name == "" {
-		return errors.New("product name cannot be empty")
-	}
-
-	newID := len(idx.Products) + 1
-	pDir := productDir(newID)
-
-	// Create product/<id>/projects (idempotent)
-	if err := os.MkdirAll(filepath.Join(pDir, "projects"), 0o755); err != nil {
-		return fmt.Errorf("mkdir product/projects: %w", err)
-	}
-
-	// Update in-memory index (shallow placeholder)
-	idx.Products = append(idx.Products, ProductType{
-		ID:       newID,
-		Name:     name,
-		Projects: []ProjectType{},
-	})
-	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("error saving index, AddProduct function: %w", err)
-	}
-
-	return nil
-}
-
-func (idx *Index) SaveIndex() error {
-	// Project data is skipped automatically via struct tags, so the
-	// index can be written directly without making a deep copy.
-	if err := writeTOML(indexPath, idx); err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return nil
-}
-
-// AddProject appends a project to the given product and writes its TOML.
-// projectID = len(product.Projects) + 1
-// Collisions on disk are acceptable by your policy (we overwrite TOML).
-//
-// idx must be the index containing this product so the index can be
-// persisted after adding the project.
-func (prd *ProductType) AddProject(idx *Index, projectName string) error {
-	if projectName == "" {
-		return errors.New("project name cannot be empty")
-	}
-	if idx == nil {
-		return errors.New("index cannot be nil")
-	}
-
-	newPrjID := len(prd.Projects) + 1
-	prjDir := projectDir(prd.ID, newPrjID)
-
-	// Ensure dir (idempotent)
-	if err := os.MkdirAll(prjDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir project dir: %w", err)
-	}
-
-	addedproject := ProjectType{
-		ID:        newPrjID,
-		ProductID: prd.ID,
-		Name:      projectName,
-		LLM:       llm.DefaultClient,
-	}
-
-	if err := addedproject.SaveProject(); err != nil {
-		return fmt.Errorf("error saving TOML, AddProject function: %w", err)
-	}
-
-	// Update in-memory index and persist
-	prd.Projects = append(prd.Projects, addedproject)
-	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("error saving index, AddProject function: %w", err)
-	}
-
-	return nil
-}
-
-func (prj *ProjectType) SaveProject() error {
+func (prj *Project) Save() error {
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	if err := os.MkdirAll(prjDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir project dir: %w", err)
@@ -381,7 +196,7 @@ func (prj *ProjectType) SaveProject() error {
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
 	// Use a helper struct so ProjectData is included even though the
-	// field is tagged with toml:"-" in ProjectType.
+	// field is tagged with toml:"-" in Project.
 	type diskProject struct {
 		ID        int         `toml:"id"`
 		ProductID int         `toml:"productid"`
@@ -402,8 +217,8 @@ func (prj *ProjectType) SaveProject() error {
 	return nil
 }
 
-// LoadProject loads a single project's TOML for this product.
-func (prj *ProjectType) LoadProject() error {
+// Load loads a single project's TOML for this product.
+func (prj *Project) Load() error {
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
@@ -431,74 +246,18 @@ func (prj *ProjectType) LoadProject() error {
 }
 
 // LoadProjects loads all listed projects for this product by reading each project.toml.
-func (prd *ProductType) LoadProjects() error {
+func (prd *Product) LoadProjects() error {
 	if prd.Projects == nil || len(prd.Projects) == 0 {
 		return nil
 	}
 	for i := range prd.Projects {
 		prd.Projects[i].ProductID = prd.ID
-		err := prd.Projects[i].LoadProject()
+		err := prd.Projects[i].Load()
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// LoadAllProjects loads all projects for all products in the index.
-func (idx *Index) LoadAllProjects() error {
-	for i := range idx.Products {
-		err := idx.Products[i].LoadProjects()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// -----------------------------------------------------------------------------
-// Small helpers
-// because it is quite easy to do wrong!
-//
-// -----------------------------------------------------------------------------
-
-func productDir(productID int) string {
-	return filepath.Join(baseProductsDir, strconv.Itoa(productID))
-}
-
-func projectDir(productID, projectID int) string {
-	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID))
-}
-
-func attachmentDir(productID, projectID int) string {
-	return filepath.Join(productDir(productID), "projects", strconv.Itoa(projectID), "attachments")
-}
-
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-func writeTOML(path string, v any) error {
-	data, err := toml.Marshal(v)
-	if err != nil {
-		return fmt.Errorf("toml marshal: %w", err)
-	}
-	return os.WriteFile(path, data, 0o644)
-}
-
-func readTOML(path string, v any) error {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return toml.Unmarshal(b, v)
 }
 
 // (Optional) helper if you ever need numeric subdirs; kept simple & unused here.
@@ -571,7 +330,7 @@ func detectMimeType(path string) string {
 }
 
 // IngestInputDir scans inputDir and ingests all regular files into attachments/.
-func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
+func (prj *Project) IngestInputDir(inputDir string) ([]Attachment, error) {
 	entries, err := os.ReadDir(inputDir)
 	if err != nil {
 		return nil, err
@@ -604,7 +363,7 @@ func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 
 // AddAttachmentFromInput moves a single file from inputDir into this project's
 // attachments/<id>/ folder, records minimal metadata, and saves the project.
-func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
+func (prj *Project) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
 	inputPath := filepath.Join(inputDir, filename)
 	if ok, err := fileExists(inputPath); err != nil {
 		return Attachment{}, err
@@ -661,7 +420,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 	}
 
 	// Persist to project.toml
-	if err := prj.SaveProject(); err != nil {
+	if err := prj.Save(); err != nil {
 		return *ptr, err
 	}
 	return *ptr, nil

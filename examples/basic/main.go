@@ -15,16 +15,16 @@ func main() {
 		log.Fatalf("ensure layout: %v", err)
 	}
 
-	idx, err := PMFS.LoadIndex()
+	idx, err := PMFS.Load()
 	if err != nil {
-		log.Fatalf("load index: %v", err)
+		log.Fatalf("load database: %v", err)
 	}
 
 	if len(idx.Products) == 0 {
-		if err := idx.AddProduct("Example Product"); err != nil {
+		if _, err := idx.NewProduct(PMFS.ProductData{Name: "Example Product"}); err != nil {
 			log.Fatalf("add product: %v", err)
 		}
-		if err := idx.Products[0].AddProject(&idx, "Example Project"); err != nil {
+		if err := idx.Products[0].CreateProject(&idx, "Example Project"); err != nil {
 			log.Fatalf("add project: %v", err)
 		}
 	}
