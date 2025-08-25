@@ -5,11 +5,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	PMFS "github.com/rjboer/PMFS"
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 )
 
 func copyFile(src, dst string) error {
@@ -21,31 +20,9 @@ func copyFile(src, dst string) error {
 }
 
 // This example demonstrates setting up a project, ingesting an attachment,
-// analysing requirements and evaluating quality gates.
+// analysing requirements and evaluating quality gates. Requires the
+// GEMINI_API_KEY environment variable.
 func main() {
-	stub := gemini.ClientFunc{
-		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-			return []gemini.Requirement{
-				{ID: 1, Name: "Register", Description: "Users shall register with email."},
-				{ID: 2, Name: "Confirm", Description: "System shall send confirmation email."},
-			}, nil
-		},
-		AskFunc: func(prompt string) (string, error) {
-			if strings.Contains(strings.ToLower(prompt), "answer yes or no") {
-				return "Yes", nil
-			}
-			if strings.Contains(strings.ToLower(prompt), "follow-up") {
-				return "details", nil
-			}
-			if strings.Contains(strings.ToLower(prompt), "given the requirement") {
-				return "Yes", nil
-			}
-			return "Yes", nil
-		},
-	}
-	prev := gemini.SetClient(stub)
-	defer gemini.SetClient(prev)
-
 	dir, err := os.MkdirTemp("", "pmfs-example")
 	if err != nil {
 		log.Fatal(err)
@@ -68,6 +45,7 @@ func main() {
 		log.Fatalf("AddProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
+	prj.LLM = llm.DefaultClient
 
 	attDir := filepath.Join(dir, "products", "1", "projects", "1", "attachments", "1")
 	if err := os.MkdirAll(attDir, 0o755); err != nil {

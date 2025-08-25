@@ -4,42 +4,16 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	PMFS "github.com/rjboer/PMFS"
 	llm "github.com/rjboer/PMFS/pmfs/llm"
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
 // This example demonstrates a full flow using Gemini to analyze a document,
 // storing the returned requirements, asking multiple role-specific questions
-// about each requirement, and evaluating them against quality gates. After the
-// Gemini client is configured, requirement methods can be used directly without
-// passing the client to interact or gates packages. Remove the stub below and
-// set GEMINI_API_KEY to call the real API with the default client.
+// about each requirement, and evaluating them against quality gates. Requires
+// the GEMINI_API_KEY environment variable.
 func main() {
-	// Stub the Gemini client so the example runs without external calls.
-	// Delete this block for live API calls.
-	stub := gemini.ClientFunc{
-		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-			return []gemini.Requirement{
-				{ID: 1, Name: "Login", Description: "Users shall log in with email and password."},
-				{ID: 2, Name: "Logout", Description: "Users shall be able to log out securely."},
-			}, nil
-		},
-		AskFunc: func(prompt string) (string, error) {
-			p := strings.ToLower(prompt)
-			if strings.Contains(p, "answer yes or no only") {
-				return "Yes", nil
-			}
-			if strings.Contains(p, "given the requirement") {
-				return "Yes", nil
-			}
-			return "stub response", nil
-		},
-	}
-	prev := gemini.SetClient(stub)
-	defer gemini.SetClient(prev)
 	PMFS.SetBaseDir(".")
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0, LLM: llm.DefaultClient}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
