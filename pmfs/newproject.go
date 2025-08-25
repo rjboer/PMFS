@@ -28,13 +28,13 @@ func NewProject(name string) (*ProjectType, error) {
 		return nil, err
 	}
 
-	if len(db.Index.Products) == 0 {
+	if len(db.Products) == 0 {
 		if _, err := db.AddProduct("Default Product"); err != nil {
 			return nil, err
 		}
 	}
 
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	prj, err := prd.AddProject(name)
 	if err != nil {
 		return nil, err

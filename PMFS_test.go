@@ -43,8 +43,8 @@ func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if len(db2.Index.Products) != 1 || db2.Index.Products[0].Name != "prod1" {
-		t.Fatalf("index not updated: %#v", db2.Index.Products)
+	if len(db2.Products) != 1 || db2.Products[0].Name != "prod1" {
+		t.Fatalf("index not updated: %#v", db2.Products)
 	}
 }
 
@@ -65,7 +65,7 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	if _, err := prd.AddProject("prj1"); err != nil {
 		t.Fatalf("AddProject: %v", err)
 	}
@@ -80,8 +80,8 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if len(db2.Index.Products[0].Projects) != 1 || db2.Index.Products[0].Projects[0].Name != "prj1" {
-		t.Fatalf("project not persisted to index: %#v", db2.Index.Products[0].Projects)
+	if len(db2.Products[0].Projects) != 1 || db2.Products[0].Projects[0].Name != "prj1" {
+		t.Fatalf("project not persisted to index: %#v", db2.Products[0].Projects)
 	}
 }
 
@@ -108,14 +108,14 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	if _, err := prd.AddProject("prj1"); err != nil {
 		t.Fatalf("AddProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	prj := &db.Index.Products[0].Projects[0]
+	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
 	if err := os.MkdirAll(inputDir, 0o755); err != nil {
@@ -180,14 +180,14 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	if _, err := prd.AddProject("prj1"); err != nil {
 		t.Fatalf("AddProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	prj := &db.Index.Products[0].Projects[0]
+	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
 	if err := os.MkdirAll(inputDir, 0o755); err != nil {
@@ -259,14 +259,14 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	if _, err := prd.AddProject("prj1"); err != nil {
 		t.Fatalf("AddProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	prj := &db.Index.Products[0].Projects[0]
+	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
 	if err := os.MkdirAll(inputDir, 0o755); err != nil {
@@ -337,14 +337,14 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	prd := &db.Index.Products[0]
+	prd := &db.Products[0]
 	if _, err := prd.AddProject("prj1"); err != nil {
 		t.Fatalf("AddProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	prj := &db.Index.Products[0].Projects[0]
+	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
 	if err := os.MkdirAll(inputDir, 0o755); err != nil {
@@ -387,10 +387,10 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if err := dbReload.Index.LoadAllProjects(); err != nil {
+	if err := dbReload.LoadAllProjects(); err != nil {
 		t.Fatalf("LoadAllProjects: %v", err)
 	}
-	if len(dbReload.Index.Products) != 1 || len(dbReload.Index.Products[0].Projects[0].D.Attachments) != len(files) {
-		t.Fatalf("attachments not loaded via LoadAllProjects: %#v", dbReload.Index.Products[0].Projects[0].D.Attachments)
+	if len(dbReload.Products) != 1 || len(dbReload.Products[0].Projects[0].D.Attachments) != len(files) {
+		t.Fatalf("attachments not loaded via LoadAllProjects: %#v", dbReload.Products[0].Projects[0].D.Attachments)
 	}
 }

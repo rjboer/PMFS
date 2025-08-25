@@ -122,7 +122,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    fmt.Println(db.Index.Products)
+    fmt.Println(db.Products)
 }
 ```
 
@@ -167,7 +167,7 @@ go run ./examples/full
 - `(*ProjectType) SaveProject() error`
 - `(*ProjectType) LoadProject() error`
 - `(*ProductType) LoadProjects() error`
-- `(*Index) LoadAllProjects() error`
+- `(*Database) LoadAllProjects() error`
 - `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
 - `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`

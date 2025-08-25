@@ -16,7 +16,7 @@ func main() {
 		log.Fatalf("setup: %v", err)
 	}
 
-	if len(db.Index.Products) == 0 {
+	if len(db.Products) == 0 {
 		p, err := db.AddProduct("Example Product")
 		if err != nil {
 			log.Fatalf("add product: %v", err)
@@ -29,7 +29,7 @@ func main() {
 		}
 	}
 
-	for _, p := range db.Index.Products {
+	for _, p := range db.Products {
 		fmt.Printf("Product %d: %s\n", p.ID, p.Name)
 		for _, pr := range p.Projects {
 			fmt.Printf("  Project %d: %s\n", pr.ID, pr.Name)

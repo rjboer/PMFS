@@ -65,12 +65,11 @@ func setBaseDir(dir string) {
 	indexPath = filepath.Join(baseProductsDir, indexFilename)
 }
 
-// Database wraps the in-memory index together with the base directory path
-// from which it was loaded. All file system operations rely on BaseDir being
-// configured through LoadSetup.
+// Database holds the products and the base directory from which it was loaded.
+// The BaseDir field is not persisted to disk.
 type Database struct {
-	BaseDir string
-	Index   Index
+	BaseDir  string        `toml:"-"`
+	Products []ProductType `toml:"products"`
 }
 
 // LoadSetup initialises the database at the provided path. It sets the
@@ -87,28 +86,25 @@ func LoadSetup(path string) (*Database, error) {
 	if err := ensureLayout(); err != nil {
 		return nil, err
 	}
-	idx, err := loadIndex()
+	db, err := loadDatabase()
 	if err != nil {
 		return nil, err
 	}
-	return &Database{BaseDir: path, Index: idx}, nil
+	db.BaseDir = path
+	return db, nil
 }
 
-// Save persists the in-memory index back to disk.
+// Save persists the in-memory database back to disk.
 func (db *Database) Save() error {
-	return writeTOML(indexPath, &db.Index)
+	return writeTOML(indexPath, db)
 }
 
 // -----------------------------------------------------------------------------
 // Memory model
 // -----------------------------------------------------------------------------
 
-// Index is a minimal placeholder for products list.
-// Next IDs are derived from len(products)+1.
-type Index struct {
-	Products []ProductType `toml:"products"`
-}
-
+// ProductType represents a product within the database. Next IDs are derived
+// from len(db.Products)+1.
 type ProductType struct {
 	ID       int           `toml:"id"`
 	Name     string        `toml:"name"`
@@ -296,32 +292,32 @@ func ensureLayout() error {
 	if ok, err := fileExists(indexPath); err != nil {
 		return err
 	} else if !ok {
-		idx := Index{Products: []ProductType{}}
-		if err := writeTOML(indexPath, &idx); err != nil {
+		db := Database{Products: []ProductType{}}
+		if err := writeTOML(indexPath, &db); err != nil {
 			return fmt.Errorf("write index.toml: %w", err)
 		}
 	}
 	return nil
 }
 
-// loadIndex reads index.toml into the shallow model.
-func loadIndex() (Index, error) {
-	var idx Index
-	if err := readTOML(indexPath, &idx); err != nil {
+// loadDatabase reads index.toml into the database model.
+func loadDatabase() (*Database, error) {
+	var db Database
+	if err := readTOML(indexPath, &db); err != nil {
 		if os.IsNotExist(err) {
 			// Create a fresh one if missing (keeps flow simple)
-			idx = Index{Products: []ProductType{}}
-			if werr := writeTOML(indexPath, &idx); werr != nil {
-				return idx, werr
+			db = Database{Products: []ProductType{}}
+			if werr := writeTOML(indexPath, &db); werr != nil {
+				return nil, werr
 			}
-			return idx, nil
+			return &db, nil
 		}
-		return idx, fmt.Errorf("read index.toml: %w", err)
+		return nil, fmt.Errorf("read index.toml: %w", err)
 	}
-	if idx.Products == nil {
-		idx.Products = []ProductType{}
+	if db.Products == nil {
+		db.Products = []ProductType{}
 	}
-	return idx, nil
+	return &db, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -329,13 +325,13 @@ func loadIndex() (Index, error) {
 // -----------------------------------------------------------------------------
 
 // AddProduct appends a product to the database and creates its directory
-// skeleton. ProductID = len(db.Index.Products) + 1.
+// skeleton. ProductID = len(db.Products) + 1.
 func (db *Database) AddProduct(name string) (*ProductType, error) {
 	if name == "" {
 		return nil, errors.New("product name cannot be empty")
 	}
 
-	newID := len(db.Index.Products) + 1
+	newID := len(db.Products) + 1
 	pDir := productDir(newID)
 
 	// Create product/<id>/projects (idempotent)
@@ -348,8 +344,8 @@ func (db *Database) AddProduct(name string) (*ProductType, error) {
 		Name:     name,
 		Projects: []ProjectType{},
 	}
-	db.Index.Products = append(db.Index.Products, prd)
-	return &db.Index.Products[len(db.Index.Products)-1], nil
+	db.Products = append(db.Products, prd)
+	return &db.Products[len(db.Products)-1], nil
 }
 
 // AddProject appends a project to the given product and writes its TOML.
@@ -455,10 +451,10 @@ func (prd *ProductType) LoadProjects() error {
 	return nil
 }
 
-// LoadAllProjects loads all projects for all products in the index.
-func (idx *Index) LoadAllProjects() error {
-	for i := range idx.Products {
-		err := idx.Products[i].LoadProjects()
+// LoadAllProjects loads all projects for all products in the database.
+func (db *Database) LoadAllProjects() error {
+	for i := range db.Products {
+		err := db.Products[i].LoadProjects()
 		if err != nil {
 			return err
 		}

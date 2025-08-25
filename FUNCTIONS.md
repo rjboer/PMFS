@@ -9,7 +9,7 @@ Sets up the base directory, ensures required folders exist and loads `index.toml
 Appends a product to the database and creates its directory skeleton.
 
 ## (*Database) Save
-Writes the in-memory index to `index.toml`.
+Writes the in-memory database to `index.toml`.
 
 ## (*ProductType) AddProject
 Adds a new project to a product and persists the change to disk.
@@ -23,8 +23,8 @@ Loads a project's data from its `project.toml` file.
 ## (*ProductType) LoadProjects
 Loads all projects for a given product.
 
-## (*Index) LoadAllProjects
-Loads all projects for all products in the index.
+## (*Database) LoadAllProjects
+Loads all projects for all products in the database.
 
 ## (*ProjectType) IngestInputDir
 Scans a directory and ingests each file as an attachment.
