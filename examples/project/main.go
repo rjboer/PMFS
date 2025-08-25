@@ -34,15 +34,15 @@ func main() {
 		log.Fatalf("EnsureLayout: %v", err)
 	}
 
-	idx, err := PMFS.LoadIndex()
+	idx, err := PMFS.Load()
 	if err != nil {
-		log.Fatalf("LoadIndex: %v", err)
+		log.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("Demo Product"); err != nil {
-		log.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(PMFS.ProductData{Name: "Demo Product"}); err != nil {
+		log.Fatalf("NewProduct: %v", err)
 	}
-	if err := idx.Products[0].AddProject(&idx, "Demo Project"); err != nil {
-		log.Fatalf("AddProject: %v", err)
+	if err := idx.Products[0].CreateProject(&idx, "Demo Project"); err != nil {
+		log.Fatalf("CreateProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
 	prj.LLM = llm.DefaultClient

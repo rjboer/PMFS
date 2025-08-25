@@ -10,7 +10,7 @@ import (
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
-func TestEnsureLayoutCreatesIndex(t *testing.T) {
+func TestEnsureLayoutCreatesDatabase(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
@@ -23,63 +23,85 @@ func TestEnsureLayoutCreatesIndex(t *testing.T) {
 	}
 }
 
-func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
+func TestNewProductCreatesDirAndUpdatesDatabase(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+	idx, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
 	prodDir := filepath.Join(dir, productsDir, "1", "projects")
 	if _, err := os.Stat(prodDir); err != nil {
 		t.Fatalf("product dir missing: %v", err)
 	}
-	idx2, err := LoadIndex()
+	idx2, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	if len(idx2.Products) != 1 || idx2.Products[0].Name != "prod1" {
 		t.Fatalf("index not updated: %#v", idx2.Products)
 	}
 }
 
-func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
+func TestNewProductGeneratesUniqueID(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	SetBaseDir(dir)
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+
+	idx := Database{Products: []Product{
+		{ProductData: ProductData{ID: 1, Name: "p1"}},
+		{ProductData: ProductData{ID: 3, Name: "p3"}},
+	}}
+
+	id, err := idx.NewProduct(ProductData{Name: "p4"})
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("NewProduct: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if id != 4 {
+		t.Fatalf("expected new product ID 4, got %d", id)
+	}
+}
+
+func TestCreateProjectWritesTomlAndUpdatesDatabase(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	dir := t.TempDir()
+	SetBaseDir(dir)
+	if err := EnsureLayout(); err != nil {
+		t.Fatalf("EnsureLayout: %v", err)
+	}
+	idx, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
 	// reload index to obtain product
-	idx, err = LoadIndex()
+	idx, err = Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, "prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if err := prd.CreateProject(&idx, "prj1"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
 	}
 	prjToml := filepath.Join(dir, productsDir, "1", "projects", "1", projectTOML)
 	if _, err := os.Stat(prjToml); err != nil {
 		t.Fatalf("project toml missing: %v", err)
 	}
-	idx2, err := LoadIndex()
+	idx2, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	if len(idx2.Products[0].Projects) != 1 || idx2.Products[0].Projects[0].Name != "prj1" {
 		t.Fatalf("project not persisted to index: %#v", idx2.Products[0].Projects)
@@ -99,20 +121,20 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+	idx, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	idx, err = LoadIndex()
+	idx, err = Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, "prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if err := prd.CreateProject(&idx, "prj1"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
 
@@ -145,9 +167,9 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("attachment not analyzed")
 	}
 	// ensure metadata persisted to project.toml
-	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	prjReload := Project{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.Attachments) != 1 || prjReload.D.Attachments[0].Filename != fname {
 		t.Fatalf("attachment not persisted: %#v", prjReload.D.Attachments)
@@ -169,20 +191,20 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+	idx, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	idx, err = LoadIndex()
+	idx, err = Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, "prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if err := prd.CreateProject(&idx, "prj1"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
 
@@ -222,9 +244,9 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 		t.Fatalf("requirements not appended")
 	}
 	// ensure requirements persisted to disk
-	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	prjReload := Project{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.PotentialRequirements) != len(mockReqs) {
 		t.Fatalf("expected %d persisted requirements, got %d", len(mockReqs), len(prjReload.D.PotentialRequirements))
@@ -246,20 +268,20 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+	idx, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	idx, err = LoadIndex()
+	idx, err = Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, "prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if err := prd.CreateProject(&idx, "prj1"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
 
@@ -296,9 +318,9 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 		t.Fatalf("no requirements returned")
 	}
 
-	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	prjReload := Project{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.PotentialRequirements) == 0 {
 		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
@@ -322,20 +344,20 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err := EnsureLayout(); err != nil {
 		t.Fatalf("EnsureLayout: %v", err)
 	}
-	idx, err := LoadIndex()
+	idx, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if err := idx.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+	if _, err := idx.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	idx, err = LoadIndex()
+	idx, err = Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, "prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if err := prd.CreateProject(&idx, "prj1"); err != nil {
+		t.Fatalf("CreateProject: %v", err)
 	}
 	prj := &idx.Products[0].Projects[0]
 
@@ -368,17 +390,17 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		}
 	}
 
-	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	prjReload := Project{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.Attachments) != len(files) {
 		t.Fatalf("expected %d attachments persisted, got %d", len(files), len(prjReload.D.Attachments))
 	}
 
-	idxReload, err := LoadIndex()
+	idxReload, err := Load()
 	if err != nil {
-		t.Fatalf("LoadIndex: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
 	if err := idxReload.LoadAllProjects(); err != nil {
 		t.Fatalf("LoadAllProjects: %v", err)

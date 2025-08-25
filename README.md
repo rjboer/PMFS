@@ -40,7 +40,7 @@ variable is set, package functions will use the live API without any
 
 With the environment prepared you can spin up a project in a single step. Set
 `PMFS_BASEDIR` (and `GEMINI_API_KEY` for live LLM features) and call
-`pmfs.NewProject`:
+`pmfs.CreateProject`:
 
 ```bash
 export PMFS_BASEDIR=/tmp/pmfs
@@ -57,7 +57,7 @@ import (
 )
 
 func main() {
-    prj, err := pmfs.NewProject("Demo Project")
+    prj, err := pmfs.CreateProject("Demo Project")
     if err != nil {
         log.Fatal(err)
     }
@@ -102,9 +102,9 @@ sequenceDiagram
 
     Dev->>PMFS: EnsureLayout()
     PMFS-->>Dev: create base folders
-    Dev->>PMFS: LoadIndex()
+    Dev->>PMFS: Load()
     PMFS-->>Dev: read index.toml
-    Dev->>PMFS: AddProduct/AddProject
+    Dev->>PMFS: NewProduct/CreateProject
     PMFS-->>Dev: write project.toml
 ```
 
@@ -123,7 +123,7 @@ func main() {
     if err := PMFS.EnsureLayout(); err != nil {
         panic(err)
     }
-    idx, _ := PMFS.LoadIndex()
+    idx, _ := PMFS.Load()
     fmt.Println(idx.Products)
 }
 ```
@@ -163,16 +163,17 @@ go run ./examples/full
 ## Available Functions
 
 - `EnsureLayout()`
-- `LoadIndex()`
-- `(*Index) AddProduct(name string) error`
-- `(*Index) SaveIndex() error`
-- `(*ProductType) AddProject(idx *Index, projectName string) error`
-- `(*ProjectType) SaveProject() error`
-- `(*ProjectType) LoadProject() error`
-- `(*ProductType) LoadProjects() error`
-- `(*Index) LoadAllProjects() error`
-- `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
-- `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
+- `Load()`
+- `(*Database) NewProduct(data ProductData) (int, error)`
+- `(*Database) ModifyProduct(data ProductData) (int, error)`
+- `(*Database) Save() error`
+- `(*Product) CreateProject(db *Database, projectName string) error`
+- `(*Project) Save() error`
+- `(*Project) Load() error`
+- `(*Product) LoadProjects() error`
+- `(*Database) LoadAllProjects() error`
+- `(*Project) IngestInputDir(inputDir string) ([]Attachment, error)`
+- `(*Project) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`
 
 See [FUNCTIONS.md](FUNCTIONS.md) for detailed descriptions.

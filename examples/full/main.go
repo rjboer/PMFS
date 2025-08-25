@@ -15,7 +15,7 @@ import (
 // the GEMINI_API_KEY environment variable.
 func main() {
 	PMFS.SetBaseDir(".")
-	prj := PMFS.ProjectType{ProductID: 0, ID: 0, LLM: llm.DefaultClient}
+	prj := PMFS.Project{ProductID: 0, ID: 0, LLM: llm.DefaultClient}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
 	// Analyze a document to extract potential requirements.
