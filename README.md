@@ -36,6 +36,35 @@ The default Gemini client reads `GEMINI_API_KEY` automatically. When this
 variable is set, package functions will use the live API without any
 `SetClient` call.
 
+### Start a Project in One Call
+
+With the environment prepared you can spin up a project in a single step. Set
+`PMFS_BASEDIR` (and `GEMINI_API_KEY` for live LLM features) and call
+`pmfs.NewProject`:
+
+```bash
+export PMFS_BASEDIR=/tmp/pmfs
+export GEMINI_API_KEY=your-key   # required for LLM features
+```
+
+```go
+package main
+
+import (
+    "log"
+
+    "github.com/rjboer/PMFS/pmfs"
+)
+
+func main() {
+    prj, err := pmfs.NewProject("Demo Project")
+    if err != nil {
+        log.Fatal(err)
+    }
+    _ = prj // project is ready to use
+}
+```
+
 ## Directory Structure
 
 The backend stores its data in a folder called `database`. Inside it, each product gets its own subdirectory and keeps an `index.toml` of projects.
