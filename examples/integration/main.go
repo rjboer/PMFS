@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	PMFS "github.com/rjboer/PMFS"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
@@ -36,7 +37,7 @@ func main() {
 	prev := gemini.SetClient(stub)
 	defer gemini.SetClient(prev)
 	PMFS.SetBaseDir(".")
-	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
+	prj := PMFS.ProjectType{ProductID: 0, ID: 0, LLM: llm.DefaultClient}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
 	// Analyze a document to extract potential requirements.
@@ -53,13 +54,13 @@ func main() {
 
 	// With the client configured above, the requirement can query roles and
 	// evaluate gates directly.
-	pass, follow, _ := r.Analyse("qa_lead", "1")
+	pass, follow, _ := r.Analyse(&prj, "qa_lead", "1")
 	fmt.Printf("QA Lead agrees? %v\n", pass)
 	if follow != "" {
 		fmt.Printf("Follow-up: %s\n", follow)
 	}
 
-	_ = r.EvaluateGates([]string{"clarity-form-1", "duplicate-1"})
+	_ = r.EvaluateGates(&prj, []string{"clarity-form-1", "duplicate-1"})
 	for _, gr := range r.GateResults {
 		fmt.Printf("Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
 	}
