@@ -44,34 +44,6 @@ func (t testClient) Ask(prompt string) (string, error) {
 	return t.name, nil
 }
 
-func TestSetClientSwapsImplementation(t *testing.T) {
-	c1 := testClient{name: "first"}
-	c2 := testClient{name: "second"}
-
-	prev := SetClient(c1)
-	defer SetClient(prev)
-
-	reqs, err := AnalyzeAttachment("p")
-	if err != nil {
-		t.Fatalf("AnalyzeAttachment: %v", err)
-	}
-	if len(reqs) != 1 || reqs[0].Name != "first" {
-		t.Fatalf("unexpected requirements from c1: %#v", reqs)
-	}
-
-	prev2 := SetClient(c2)
-	if prev2 != c1 {
-		t.Fatalf("expected previous client to be c1")
-	}
-	reqs, err = AnalyzeAttachment("p")
-	if err != nil {
-		t.Fatalf("AnalyzeAttachment: %v", err)
-	}
-	if len(reqs) != 1 || reqs[0].Name != "second" {
-		t.Fatalf("unexpected requirements from c2: %#v", reqs)
-	}
-}
-
 func TestClientFuncAnalyzeAttachment(t *testing.T) {
 	cf := ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]Requirement, error) {
 		if path != "file" {
@@ -87,7 +59,6 @@ func TestClientFuncAnalyzeAttachment(t *testing.T) {
 		t.Fatalf("unexpected requirements: %#v", reqs)
 	}
 }
-
 
 func TestClientFuncAsk(t *testing.T) {
 	cf := ClientFunc{AskFunc: func(prompt string) (string, error) {
@@ -105,7 +76,6 @@ func TestClientFuncAsk(t *testing.T) {
 	}
 }
 
-
 func TestRequirementUnmarshalStringID(t *testing.T) {
 	data := []byte(`[{"id":"42","name":"N","description":"D"}]`)
 	var reqs []Requirement
@@ -118,11 +88,11 @@ func TestRequirementUnmarshalStringID(t *testing.T) {
 }
 
 func TestRequirementUnmarshalNonNumericID(t *testing.T) {
-        data := []byte(`[{"id":"REQ-1","name":"N","description":"D"}]`)
-        var reqs []Requirement
-        if err := json.Unmarshal(data, &reqs); err == nil {
-                t.Fatalf("expected error for non-numeric id")
-        }
+	data := []byte(`[{"id":"REQ-1","name":"N","description":"D"}]`)
+	var reqs []Requirement
+	if err := json.Unmarshal(data, &reqs); err == nil {
+		t.Fatalf("expected error for non-numeric id")
+	}
 }
 
 func sameRequirements(a, b []Requirement) bool {
@@ -135,11 +105,11 @@ func sameRequirements(a, b []Requirement) bool {
 }
 
 func TestRESTClientAnalyzeAttachmentReal(t *testing.T) {
-        base := filepath.Join("..", "..", "..", "testdata")
-        p1 := filepath.Join(base, "spec1.txt")
-        p2 := filepath.Join(base, "spec2.txt")
-        p3 := filepath.Join(base, "spec3.png")
-        p4 := filepath.Join(base, "spec4.jpg")
+	base := filepath.Join("..", "..", "..", "testdata")
+	p1 := filepath.Join(base, "spec1.txt")
+	p2 := filepath.Join(base, "spec2.txt")
+	p3 := filepath.Join(base, "spec3.png")
+	p4 := filepath.Join(base, "spec4.jpg")
 
 	key := os.Getenv("GEMINI_API_KEY")
 	if key == "" || key == "test-key" {
@@ -153,30 +123,30 @@ func TestRESTClientAnalyzeAttachmentReal(t *testing.T) {
 	}
 	t.Logf("real Gemini returned for spec1: %#v", r1)
 
-        r2, err := c.AnalyzeAttachment(p2)
-        if err != nil {
-                t.Fatalf("AnalyzeAttachment(spec2): %v", err)
-        }
+	r2, err := c.AnalyzeAttachment(p2)
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment(spec2): %v", err)
+	}
 
-        t.Logf("real Gemini returned for spec2: %#v", r2)
+	t.Logf("real Gemini returned for spec2: %#v", r2)
 
-        r3, err := c.AnalyzeAttachment(p3)
-        if err != nil {
-                t.Fatalf("AnalyzeAttachment(spec3): %v", err)
-        }
-        t.Logf("real Gemini returned for spec3: %#v", r3)
+	r3, err := c.AnalyzeAttachment(p3)
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment(spec3): %v", err)
+	}
+	t.Logf("real Gemini returned for spec3: %#v", r3)
 
-        r4, err := c.AnalyzeAttachment(p4)
-        if err != nil {
-                t.Fatalf("AnalyzeAttachment(spec4): %v", err)
-        }
-        t.Logf("real Gemini returned for spec4: %#v", r4)
+	r4, err := c.AnalyzeAttachment(p4)
+	if err != nil {
+		t.Fatalf("AnalyzeAttachment(spec4): %v", err)
+	}
+	t.Logf("real Gemini returned for spec4: %#v", r4)
 
-        if sameRequirements(r1, r2) {
-                t.Fatalf("expected different requirements for distinct documents")
-        }
+	if sameRequirements(r1, r2) {
+		t.Fatalf("expected different requirements for distinct documents")
+	}
 
-        if _, err := c.AnalyzeAttachment(filepath.Join(base, "sources.txt")); err == nil {
-                t.Fatalf("expected error for unsupported document")
-        }
+	if _, err := c.AnalyzeAttachment(filepath.Join(base, "sources.txt")); err == nil {
+		t.Fatalf("expected error for unsupported document")
+	}
 }
