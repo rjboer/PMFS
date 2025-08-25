@@ -2,16 +2,13 @@
 
 This document lists all exported functions in the PMFS package and what they do.
 
-## EnsureLayout
-Creates base folder structure and ensures `index.toml` exists.
+## LoadSetup
+Sets up the base directory, ensures required folders exist and loads `index.toml`.
 
-## LoadIndex
-Reads `index.toml` into the in-memory index model.
+## (*Database) AddProduct
+Appends a product to the database and creates its directory skeleton.
 
-## (*Index) AddProduct
-Appends a product to the index and creates its directory skeleton.
-
-## (*Index) SaveIndex
+## (*Database) Save
 Writes the in-memory index to `index.toml`.
 
 ## (*ProductType) AddProject

@@ -65,6 +65,40 @@ func setBaseDir(dir string) {
 	indexPath = filepath.Join(baseProductsDir, indexFilename)
 }
 
+// Database wraps the in-memory index together with the base directory path
+// from which it was loaded. All file system operations rely on BaseDir being
+// configured through LoadSetup.
+type Database struct {
+	BaseDir string
+	Index   Index
+}
+
+// LoadSetup initialises the database at the provided path. It sets the
+// PMFS_BASEDIR environment variable, prepares the on-disk layout and loads the
+// index into memory.
+func LoadSetup(path string) (*Database, error) {
+	// Export base directory for any helpers relying on the environment
+	// variable and update internal path bookkeeping.
+	if err := os.Setenv(envBaseDir, path); err != nil {
+		return nil, err
+	}
+	SetBaseDir(path)
+
+	if err := ensureLayout(); err != nil {
+		return nil, err
+	}
+	idx, err := loadIndex()
+	if err != nil {
+		return nil, err
+	}
+	return &Database{BaseDir: path, Index: idx}, nil
+}
+
+// Save persists the in-memory index back to disk.
+func (db *Database) Save() error {
+	return writeTOML(indexPath, &db.Index)
+}
+
 // -----------------------------------------------------------------------------
 // Memory model
 // -----------------------------------------------------------------------------
@@ -253,8 +287,8 @@ type Intelligence struct {
 // Init helpers
 // -----------------------------------------------------------------------------
 //
-// EnsureLayout creates base folder structure and ensures index.toml exists.
-func EnsureLayout() error {
+// ensureLayout creates base folder structure and ensures index.toml exists.
+func ensureLayout() error {
 	if err := os.MkdirAll(baseProductsDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", baseProductsDir, err)
 	}
@@ -270,8 +304,8 @@ func EnsureLayout() error {
 	return nil
 }
 
-// LoadIndex reads index.toml into the shallow model.
-func LoadIndex() (Index, error) {
+// loadIndex reads index.toml into the shallow model.
+func loadIndex() (Index, error) {
 	var idx Index
 	if err := readTOML(indexPath, &idx); err != nil {
 		if os.IsNotExist(err) {
@@ -291,58 +325,39 @@ func LoadIndex() (Index, error) {
 }
 
 // -----------------------------------------------------------------------------
-// Public ops (global/exported)
+// Public ops
 // -----------------------------------------------------------------------------
 
-// AddProduct appends a product to the index and creates its directory skeleton.
-// ProductID = len(idx.Products) + 1
-func (idx *Index) AddProduct(name string) error {
+// AddProduct appends a product to the database and creates its directory
+// skeleton. ProductID = len(db.Index.Products) + 1.
+func (db *Database) AddProduct(name string) (*ProductType, error) {
 	if name == "" {
-		return errors.New("product name cannot be empty")
+		return nil, errors.New("product name cannot be empty")
 	}
 
-	newID := len(idx.Products) + 1
+	newID := len(db.Index.Products) + 1
 	pDir := productDir(newID)
 
 	// Create product/<id>/projects (idempotent)
 	if err := os.MkdirAll(filepath.Join(pDir, "projects"), 0o755); err != nil {
-		return fmt.Errorf("mkdir product/projects: %w", err)
+		return nil, fmt.Errorf("mkdir product/projects: %w", err)
 	}
 
-	// Update in-memory index (shallow placeholder)
-	idx.Products = append(idx.Products, ProductType{
+	prd := ProductType{
 		ID:       newID,
 		Name:     name,
 		Projects: []ProjectType{},
-	})
-	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("error saving index, AddProduct function: %w", err)
 	}
-
-	return nil
-}
-
-func (idx *Index) SaveIndex() error {
-	// Project data is skipped automatically via struct tags, so the
-	// index can be written directly without making a deep copy.
-	if err := writeTOML(indexPath, idx); err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return nil
+	db.Index.Products = append(db.Index.Products, prd)
+	return &db.Index.Products[len(db.Index.Products)-1], nil
 }
 
 // AddProject appends a project to the given product and writes its TOML.
-// projectID = len(product.Projects) + 1
-// Collisions on disk are acceptable by your policy (we overwrite TOML).
-//
-// idx must be the index containing this product so the index can be
-// persisted after adding the project.
-func (prd *ProductType) AddProject(idx *Index, projectName string) error {
+// projectID = len(product.Projects) + 1. Collisions on disk are acceptable by
+// your policy (we overwrite TOML).
+func (prd *ProductType) AddProject(projectName string) (*ProjectType, error) {
 	if projectName == "" {
-		return errors.New("project name cannot be empty")
-	}
-	if idx == nil {
-		return errors.New("index cannot be nil")
+		return nil, errors.New("project name cannot be empty")
 	}
 
 	newPrjID := len(prd.Projects) + 1
@@ -350,7 +365,7 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 
 	// Ensure dir (idempotent)
 	if err := os.MkdirAll(prjDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir project dir: %w", err)
+		return nil, fmt.Errorf("mkdir project dir: %w", err)
 	}
 
 	addedproject := ProjectType{
@@ -361,16 +376,11 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 	}
 
 	if err := addedproject.SaveProject(); err != nil {
-		return fmt.Errorf("error saving TOML, AddProject function: %w", err)
+		return nil, fmt.Errorf("error saving TOML, AddProject function: %w", err)
 	}
 
-	// Update in-memory index and persist
 	prd.Projects = append(prd.Projects, addedproject)
-	if err := idx.SaveIndex(); err != nil {
-		return fmt.Errorf("error saving index, AddProject function: %w", err)
-	}
-
-	return nil
+	return &prd.Projects[len(prd.Projects)-1], nil
 }
 
 func (prj *ProjectType) SaveProject() error {

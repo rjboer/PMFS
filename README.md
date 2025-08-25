@@ -100,10 +100,8 @@ sequenceDiagram
     participant Dev as Developer
     participant PMFS as PMFS package
 
-    Dev->>PMFS: EnsureLayout()
-    PMFS-->>Dev: create base folders
-    Dev->>PMFS: LoadIndex()
-    PMFS-->>Dev: read index.toml
+    Dev->>PMFS: LoadSetup(path)
+    PMFS-->>Dev: create base folders, read index.toml
     Dev->>PMFS: AddProduct/AddProject
     PMFS-->>Dev: write project.toml
 ```
@@ -120,11 +118,11 @@ import (
 )
 
 func main() {
-    if err := PMFS.EnsureLayout(); err != nil {
+    db, err := PMFS.LoadSetup("database")
+    if err != nil {
         panic(err)
     }
-    idx, _ := PMFS.LoadIndex()
-    fmt.Println(idx.Products)
+    fmt.Println(db.Index.Products)
 }
 ```
 
@@ -162,11 +160,10 @@ go run ./examples/full
 
 ## Available Functions
 
-- `EnsureLayout()`
-- `LoadIndex()`
-- `(*Index) AddProduct(name string) error`
-- `(*Index) SaveIndex() error`
-- `(*ProductType) AddProject(idx *Index, projectName string) error`
+- `LoadSetup(path string) (*Database, error)`
+- `(*Database) AddProduct(name string) (*ProductType, error)`
+- `(*Database) Save() error`
+- `(*ProductType) AddProject(name string) (*ProjectType, error)`
 - `(*ProjectType) SaveProject() error`
 - `(*ProjectType) LoadProject() error`
 - `(*ProductType) LoadProjects() error`
