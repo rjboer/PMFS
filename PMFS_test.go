@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
@@ -87,10 +88,10 @@ func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	// mock Gemini client to avoid external calls
-	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return nil, nil
 	}})
-	defer gemini.SetClient(orig)
+	defer llm.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
@@ -158,10 +159,10 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
-	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return mockReqs, nil
 	}})
-	defer gemini.SetClient(orig)
+	defer llm.SetClient(orig)
 
 	dir := t.TempDir()
 	SetBaseDir(dir)
@@ -309,10 +310,10 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 
-	orig := gemini.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		return nil, nil
 	}})
-	defer gemini.SetClient(orig)
+	defer llm.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
 

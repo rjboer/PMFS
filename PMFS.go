@@ -17,6 +17,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	_ "github.com/rjboer/PMFS/internal/config"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	gates "github.com/rjboer/PMFS/pmfs/llm/gates"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 	"github.com/rjboer/PMFS/pmfs/llm/interact"
@@ -143,13 +144,13 @@ func FromGemini(req gemini.Requirement) Requirement {
 // Analyse sends the requirement description to the provided role/question pair
 // and returns the result.
 func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
-	return interact.RunQuestion(gemini.DefaultClient, role, questionID, r.Description)
+	return interact.RunQuestion(llm.DefaultClient, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
 // and stores the results on the requirement.
 func (r *Requirement) EvaluateGates(gateIDs []string) error {
-	res, err := gates.Evaluate(gemini.DefaultClient, gateIDs, r.Description)
+	res, err := gates.Evaluate(llm.DefaultClient, gateIDs, r.Description)
 	if err != nil {
 		return err
 	}
@@ -185,7 +186,7 @@ type Attachment struct {
 // Analyze processes the attachment with Gemini and appends proposed requirements.
 func (att *Attachment) Analyze(prj *ProjectType) error {
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
-	reqs, err := gemini.AnalyzeAttachment(full)
+	reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
 	if err != nil {
 		return err
 	}
@@ -213,7 +214,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = string(b)
 	} else {
-		reqs, err := gemini.AnalyzeAttachment(full)
+		reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
 		if err != nil {
 			return false, "", err
 		}
@@ -226,7 +227,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = sb.String()
 	}
-	return interact.RunQuestion(gemini.DefaultClient, role, questionID, content)
+	return interact.RunQuestion(llm.DefaultClient, role, questionID, content)
 }
 
 // ChangeLog records a change made to a requirement.
