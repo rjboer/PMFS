@@ -134,24 +134,27 @@ A runnable sample program lives in `examples/basic` and can be run with:
  go run ./examples/basic
 ```
 
-An example demonstrating the Gemini client lives in `examples/gemini` and can be run with:
+An example demonstrating the Gemini client lives in `examples/gemini`
+(requires `GEMINI_API_KEY`) and can be run with:
 
 ```bash
 go run ./examples/gemini
 ```
 
-All Gemini-related examples replace the client with a stub so they can run
-offline. Remove those `SetClient` blocks and ensure `GEMINI_API_KEY` is set to
-call the real API. Real API flows are illustrated in `examples/gemini`,
-`examples/integration`, and `examples/full`.
+Gemini-related examples require a valid `GEMINI_API_KEY`. For a stubbed version
+that runs offline, see `examples/mock`:
 
-An example combining Gemini analysis, interactive questions, and gate evaluation lives in `examples/integration` and can be run with:
+```bash
+go run ./examples/mock
+```
+
+An example combining Gemini analysis, interactive questions, and gate evaluation lives in `examples/integration` (requires `GEMINI_API_KEY`) and can be run with:
 
 ```bash
 go run ./examples/integration
 ```
 
-An extended example that analyzes attachments, asks multiple roles, and evaluates gates lives in `examples/full` and can be run with:
+An extended example that analyzes attachments, asks multiple roles, and evaluates gates lives in `examples/full` (requires `GEMINI_API_KEY`) and can be run with:
 
 ```bash
 go run ./examples/full

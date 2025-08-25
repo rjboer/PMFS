@@ -3,28 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	PMFS "github.com/rjboer/PMFS"
-	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
 // This example demonstrates analysing an attachment with a role-specific
-// question. Remove the stub below and set GEMINI_API_KEY to use the real API.
+// question. Requires the GEMINI_API_KEY environment variable.
 func main() {
-	// Stub Gemini client so the example runs without external calls.
-	// Delete this block for live API calls.
-	stub := gemini.ClientFunc{
-		AskFunc: func(prompt string) (string, error) {
-			if strings.Contains(strings.ToLower(prompt), "answer yes or no only") {
-				return "Yes", nil
-			}
-			return "stub response", nil
-		},
-	}
-	prev := gemini.SetClient(stub)
-	defer gemini.SetClient(prev)
-
 	PMFS.SetBaseDir(".")
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}

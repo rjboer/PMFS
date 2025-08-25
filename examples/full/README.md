@@ -2,6 +2,8 @@
 
 This example demonstrates a complete PMFS flow using the Gemini client.
 
+- **Requires:** `GEMINI_API_KEY`
+
 1. **Analyze attachment** – `gemini.AnalyzeAttachment` extracts potential requirements from `testdata/spec1.txt`.
 2. **Store requirements** – The requirements are stored in a project structure using `PMFS.FromGemini` to convert Gemini output.
 3. **Run role questions** – Each requirement's description is posed to several roles (`product_manager`, `qa_lead`, `security_privacy_officer`)
