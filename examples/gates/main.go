@@ -5,6 +5,7 @@ import (
 	"log"
 
 	PMFS "github.com/rjboer/PMFS"
+	llm "github.com/rjboer/PMFS/pmfs/llm"
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
 )
 
@@ -22,7 +23,8 @@ func main() {
 	defer gemini.SetClient(prev)
 
 	req := PMFS.Requirement{Description: "The system shall be user friendly."}
-	if err := req.EvaluateGates([]string{"clarity-form-1"}); err != nil {
+	prj := PMFS.ProjectType{LLM: llm.DefaultClient}
+	if err := req.EvaluateGates(&prj, []string{"clarity-form-1"}); err != nil {
 		log.Fatalf("EvaluateGates: %v", err)
 	}
 	for _, gr := range req.GateResults {

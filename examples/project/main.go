@@ -94,7 +94,7 @@ func main() {
 
 	for i := range prj.D.PotentialRequirements {
 		r := &prj.D.PotentialRequirements[i]
-		pass, follow, err := r.Analyse("product_manager", "1")
+		pass, follow, err := r.Analyse(prj, "product_manager", "1")
 		if err != nil {
 			log.Fatalf("Requirement Analyse: %v", err)
 		}
@@ -102,7 +102,7 @@ func main() {
 		if follow != "" {
 			fmt.Printf("  Follow-up: %s\n", follow)
 		}
-		if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
+		if err := r.EvaluateGates(prj, []string{"clarity-form-1"}); err != nil {
 			log.Fatalf("EvaluateGates: %v", err)
 		}
 		for _, gr := range r.GateResults {

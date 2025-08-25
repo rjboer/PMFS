@@ -89,7 +89,8 @@ type ProjectType struct {
 	// D contains the heavy project data and is stored only in each
 	// project's individual TOML file. The field is skipped when the
 	// index is written to disk so the index remains lightweight.
-	D ProjectData `json:"projectdata" toml:"-"`
+	D   ProjectData `json:"projectdata" toml:"-"`
+	LLM llm.Client  `json:"-" toml:"-"`
 }
 
 type ProjectData struct {
@@ -142,15 +143,15 @@ func FromGemini(req gemini.Requirement) Requirement {
 }
 
 // Analyse sends the requirement description to the provided role/question pair
-// and returns the result.
-func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
-	return interact.RunQuestion(llm.DefaultClient, role, questionID, r.Description)
+// using the project's configured LLM and returns the result.
+func (r *Requirement) Analyse(prj *ProjectType, role, questionID string) (bool, string, error) {
+	return interact.RunQuestion(prj.LLM, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
-// and stores the results on the requirement.
-func (r *Requirement) EvaluateGates(gateIDs []string) error {
-	res, err := gates.Evaluate(llm.DefaultClient, gateIDs, r.Description)
+// using the project's configured LLM and stores the results on the requirement.
+func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
+	res, err := gates.Evaluate(prj.LLM, gateIDs, r.Description)
 	if err != nil {
 		return err
 	}
@@ -227,7 +228,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = sb.String()
 	}
-	return interact.RunQuestion(llm.DefaultClient, role, questionID, content)
+	return interact.RunQuestion(prj.LLM, role, questionID, content)
 }
 
 // ChangeLog records a change made to a requirement.
@@ -356,6 +357,7 @@ func (prd *ProductType) AddProject(idx *Index, projectName string) error {
 		ID:        newPrjID,
 		ProductID: prd.ID,
 		Name:      projectName,
+		LLM:       llm.DefaultClient,
 	}
 
 	if err := addedproject.SaveProject(); err != nil {
@@ -424,6 +426,7 @@ func (prj *ProjectType) LoadProject() error {
 	prj.ProductID = dp.ProductID
 	prj.Name = dp.Name
 	prj.D = dp.D
+	prj.LLM = llm.DefaultClient
 	return nil
 }
 
