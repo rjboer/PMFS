@@ -29,13 +29,17 @@ func NewProject(name string) (*ProjectType, error) {
 	}
 
 	if len(db.Products) == 0 {
+
 		if _, err := db.NewProduct(PMFS.ProductData{Name: "Default Product"}); err != nil {
+
 			return nil, err
 		}
 	}
 
 	prd := &db.Products[0]
+
 	prj, err := prd.NewProject(name)
+
 	if err != nil {
 		return nil, err
 	}

@@ -17,12 +17,14 @@ func main() {
 	}
 
 	if len(db.Products) == 0 {
+
 		id, err := db.NewProduct(PMFS.ProductData{Name: "Example Product"})
 		if err != nil {
 			log.Fatalf("add product: %v", err)
 		}
 		p := &db.Products[id-1]
 		if _, err := p.NewProject("Example Project"); err != nil {
+
 			log.Fatalf("add project: %v", err)
 		}
 		if err := db.Save(); err != nil {

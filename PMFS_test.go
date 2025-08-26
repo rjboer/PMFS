@@ -29,8 +29,13 @@ func TestNewProductCreatesDirAndUpdatesIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
+
 	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
 		t.Fatalf("NewProduct: %v", err)
+
+	}
+	if err := db.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
 	}
 	prodDir := filepath.Join(dir, productsDir, "1", "projects")
 	if _, err := os.Stat(prodDir); err != nil {
@@ -49,6 +54,7 @@ func TestModifyProductUpdatesIndex(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	db, err := LoadSetup(dir)
+
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
@@ -88,6 +94,10 @@ func TestNewProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
+
+	}
+	if err := db.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
 	}
 	prjToml := filepath.Join(dir, productsDir, "1", "projects", "1", projectTOML)
 	if _, err := os.Stat(prjToml); err != nil {
@@ -115,16 +125,20 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
+
 	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
 		t.Fatalf("NewProduct: %v", err)
 	}
+
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
+
 	if _, err := prd.NewProject("prj1"); err != nil {
 		t.Fatalf("NewProject: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -184,16 +198,20 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
+
 	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
 		t.Fatalf("NewProduct: %v", err)
 	}
+
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
+
 	if _, err := prd.NewProject("prj1"); err != nil {
 		t.Fatalf("NewProject: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -260,6 +278,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
+
 	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
 		t.Fatalf("NewProduct: %v", err)
 	}
@@ -274,6 +293,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
+
 	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
@@ -335,6 +355,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
+
 	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
 		t.Fatalf("NewProduct: %v", err)
 	}
@@ -349,6 +370,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
+
 	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")

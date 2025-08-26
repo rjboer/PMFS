@@ -324,6 +324,7 @@ func loadDatabase() (*Database, error) {
 // Public ops
 // -----------------------------------------------------------------------------
 
+
 // ProductData holds metadata for products persisted in the index.
 type ProductData struct {
 	ID   int    `json:"id" toml:"id"`
@@ -335,9 +336,11 @@ func (db *Database) NewProduct(data ProductData) (int, error) {
 	if strings.TrimSpace(data.Name) == "" {
 		return 0, errors.New("product name cannot be empty")
 	}
+
 	newID := len(db.Products) + 1
 	pDir := productDir(newID)
 	if err := os.MkdirAll(filepath.Join(pDir, "projects"), 0o755); err != nil {
+
 		return 0, fmt.Errorf("mkdir product/projects: %w", err)
 	}
 	prd := ProductType{ID: newID, Name: data.Name, Projects: []ProjectType{}}
@@ -368,6 +371,7 @@ func (db *Database) ModifyProduct(data ProductData) (int, error) {
 // projectID = len(product.Projects) + 1. Collisions on disk are acceptable by
 // your policy (we overwrite TOML).
 func (prd *ProductType) NewProject(projectName string) (*ProjectType, error) {
+
 	if projectName == "" {
 		return nil, errors.New("project name cannot be empty")
 	}
@@ -387,8 +391,10 @@ func (prd *ProductType) NewProject(projectName string) (*ProjectType, error) {
 		LLM:       llm.DefaultClient,
 	}
 
+
 	if err := addedproject.Save(); err != nil {
 		return nil, fmt.Errorf("error saving TOML, NewProject function: %w", err)
+
 	}
 
 	prd.Projects = append(prd.Projects, addedproject)
@@ -470,7 +476,9 @@ func (prd *ProductType) LoadProjects() error {
 // LoadAllProjects loads all projects for all products in the database.
 func (db *Database) LoadAllProjects() error {
 	for i := range db.Products {
+
 		if err := db.Products[i].LoadProjects(); err != nil {
+
 			return err
 		}
 	}

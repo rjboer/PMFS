@@ -33,6 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
+
 	id, err := db.NewProduct(PMFS.ProductData{Name: "Demo Product"})
 	if err != nil {
 		log.Fatalf("NewProduct: %v", err)
@@ -41,6 +42,7 @@ func main() {
 	prj, err := p.NewProject("Demo Project")
 	if err != nil {
 		log.Fatalf("NewProject: %v", err)
+
 	}
 	prj.LLM = llm.DefaultClient
 	if err := db.Save(); err != nil {
