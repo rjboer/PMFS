@@ -18,29 +18,29 @@ func NewProject(name string) (*ProjectType, error) {
 	// Ensure the default client uses the API key from the environment.
 	llm.SetClient(gemini.NewRESTClient(os.Getenv("GEMINI_API_KEY")))
 
-	// Respect runtime override of the base directory.
-	if dir := os.Getenv("PMFS_BASEDIR"); dir != "" {
-		PMFS.SetBaseDir(dir)
+	dir := os.Getenv("PMFS_BASEDIR")
+	if dir == "" {
+		dir = "database"
 	}
 
-	if err := PMFS.EnsureLayout(); err != nil {
-		return nil, err
-	}
-
-	idx, err := PMFS.LoadIndex()
+	db, err := PMFS.LoadSetup(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(idx.Products) == 0 {
-		if err := idx.AddProduct("Default Product"); err != nil {
+	if len(db.Products) == 0 {
+		if _, err := db.NewProduct(PMFS.ProductData{Name: "Default Product"}); err != nil {
 			return nil, err
 		}
 	}
 
-	prd := &idx.Products[0]
-	if err := prd.AddProject(&idx, name); err != nil {
+	prd := &db.Products[0]
+	prj, err := prd.NewProject(name)
+	if err != nil {
 		return nil, err
 	}
-	return &prd.Projects[len(prd.Projects)-1], nil
+	if err := db.Save(); err != nil {
+		return nil, err
+	}
+	return prj, nil
 }

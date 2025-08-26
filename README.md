@@ -100,11 +100,9 @@ sequenceDiagram
     participant Dev as Developer
     participant PMFS as PMFS package
 
-    Dev->>PMFS: EnsureLayout()
-    PMFS-->>Dev: create base folders
-    Dev->>PMFS: LoadIndex()
-    PMFS-->>Dev: read index.toml
-    Dev->>PMFS: AddProduct/AddProject
+    Dev->>PMFS: LoadSetup(path)
+    PMFS-->>Dev: create base folders, read index.toml
+    Dev->>PMFS: NewProduct/NewProject
     PMFS-->>Dev: write project.toml
 ```
 
@@ -120,11 +118,11 @@ import (
 )
 
 func main() {
-    if err := PMFS.EnsureLayout(); err != nil {
+    db, err := PMFS.LoadSetup("database")
+    if err != nil {
         panic(err)
     }
-    idx, _ := PMFS.LoadIndex()
-    fmt.Println(idx.Products)
+    fmt.Println(db.Products)
 }
 ```
 
@@ -162,15 +160,15 @@ go run ./examples/full
 
 ## Available Functions
 
-- `EnsureLayout()`
-- `LoadIndex()`
-- `(*Index) AddProduct(name string) error`
-- `(*Index) SaveIndex() error`
-- `(*ProductType) AddProject(idx *Index, projectName string) error`
-- `(*ProjectType) SaveProject() error`
-- `(*ProjectType) LoadProject() error`
+- `LoadSetup(path string) (*Database, error)`
+- `(*Database) NewProduct(data ProductData) (int, error)`
+- `(*Database) ModifyProduct(data ProductData) (int, error)`
+- `(*Database) Save() error`
+- `(*ProductType) NewProject(name string) (*ProjectType, error)`
+- `(*ProjectType) Save() error`
+- `(*ProjectType) Load() error`
 - `(*ProductType) LoadProjects() error`
-- `(*Index) LoadAllProjects() error`
+- `(*Database) LoadAllProjects() error`
 - `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
 - `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`

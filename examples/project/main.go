@@ -29,23 +29,23 @@ func main() {
 	}
 	defer os.RemoveAll(dir)
 
-	PMFS.SetBaseDir(dir)
-	if err := PMFS.EnsureLayout(); err != nil {
-		log.Fatalf("EnsureLayout: %v", err)
-	}
-
-	idx, err := PMFS.LoadIndex()
+	db, err := PMFS.LoadSetup(dir)
 	if err != nil {
-		log.Fatalf("LoadIndex: %v", err)
+		log.Fatalf("LoadSetup: %v", err)
 	}
-	if err := idx.AddProduct("Demo Product"); err != nil {
-		log.Fatalf("AddProduct: %v", err)
+	id, err := db.NewProduct(PMFS.ProductData{Name: "Demo Product"})
+	if err != nil {
+		log.Fatalf("NewProduct: %v", err)
 	}
-	if err := idx.Products[0].AddProject(&idx, "Demo Project"); err != nil {
-		log.Fatalf("AddProject: %v", err)
+	p := &db.Products[id-1]
+	prj, err := p.NewProject("Demo Project")
+	if err != nil {
+		log.Fatalf("NewProject: %v", err)
 	}
-	prj := &idx.Products[0].Projects[0]
 	prj.LLM = llm.DefaultClient
+	if err := db.Save(); err != nil {
+		log.Fatalf("Save: %v", err)
+	}
 
 	attDir := filepath.Join(dir, "products", "1", "projects", "1", "attachments", "1")
 	if err := os.MkdirAll(attDir, 0o755); err != nil {

@@ -11,25 +11,26 @@ import (
 // It ensures the directory layout exists, adds a product and project
 // if none are present, and then prints the structure.
 func main() {
-	if err := PMFS.EnsureLayout(); err != nil {
-		log.Fatalf("ensure layout: %v", err)
-	}
-
-	idx, err := PMFS.LoadIndex()
+	db, err := PMFS.LoadSetup("database")
 	if err != nil {
-		log.Fatalf("load index: %v", err)
+		log.Fatalf("setup: %v", err)
 	}
 
-	if len(idx.Products) == 0 {
-		if err := idx.AddProduct("Example Product"); err != nil {
+	if len(db.Products) == 0 {
+		id, err := db.NewProduct(PMFS.ProductData{Name: "Example Product"})
+		if err != nil {
 			log.Fatalf("add product: %v", err)
 		}
-		if err := idx.Products[0].AddProject(&idx, "Example Project"); err != nil {
+		p := &db.Products[id-1]
+		if _, err := p.NewProject("Example Project"); err != nil {
 			log.Fatalf("add project: %v", err)
+		}
+		if err := db.Save(); err != nil {
+			log.Fatalf("save index: %v", err)
 		}
 	}
 
-	for _, p := range idx.Products {
+	for _, p := range db.Products {
 		fmt.Printf("Product %d: %s\n", p.ID, p.Name)
 		for _, pr := range p.Projects {
 			fmt.Printf("  Project %d: %s\n", pr.ID, pr.Name)
