@@ -33,13 +33,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
-	p, err := db.AddProduct("Demo Product")
+
+	id, err := db.NewProduct(PMFS.ProductData{Name: "Demo Product"})
 	if err != nil {
-		log.Fatalf("AddProduct: %v", err)
+		log.Fatalf("NewProduct: %v", err)
 	}
-	prj, err := p.AddProject("Demo Project")
+	p := &db.Products[id-1]
+	prj, err := p.NewProject("Demo Project")
 	if err != nil {
-		log.Fatalf("AddProject: %v", err)
+		log.Fatalf("NewProject: %v", err)
+
 	}
 	prj.LLM = llm.DefaultClient
 	if err := db.Save(); err != nil {

@@ -324,34 +324,54 @@ func loadDatabase() (*Database, error) {
 // Public ops
 // -----------------------------------------------------------------------------
 
-// AddProduct appends a product to the database and creates its directory
-// skeleton. ProductID = len(db.Products) + 1.
-func (db *Database) AddProduct(name string) (*ProductType, error) {
-	if name == "" {
-		return nil, errors.New("product name cannot be empty")
+
+// ProductData holds metadata for products persisted in the index.
+type ProductData struct {
+	ID   int    `json:"id" toml:"id"`
+	Name string `json:"name" toml:"name"`
+}
+
+// NewProduct creates a product, persists it to index.toml and returns its ID.
+func (db *Database) NewProduct(data ProductData) (int, error) {
+	if strings.TrimSpace(data.Name) == "" {
+		return 0, errors.New("product name cannot be empty")
 	}
 
 	newID := len(db.Products) + 1
 	pDir := productDir(newID)
-
-	// Create product/<id>/projects (idempotent)
 	if err := os.MkdirAll(filepath.Join(pDir, "projects"), 0o755); err != nil {
-		return nil, fmt.Errorf("mkdir product/projects: %w", err)
-	}
 
-	prd := ProductType{
-		ID:       newID,
-		Name:     name,
-		Projects: []ProjectType{},
+		return 0, fmt.Errorf("mkdir product/projects: %w", err)
 	}
+	prd := ProductType{ID: newID, Name: data.Name, Projects: []ProjectType{}}
 	db.Products = append(db.Products, prd)
-	return &db.Products[len(db.Products)-1], nil
+	if err := db.Save(); err != nil {
+		return 0, err
+	}
+	return newID, nil
 }
 
-// AddProject appends a project to the given product and writes its TOML.
+// ModifyProduct updates product fields and persists the index.
+func (db *Database) ModifyProduct(data ProductData) (int, error) {
+	for i := range db.Products {
+		if db.Products[i].ID == data.ID {
+			if data.Name != "" {
+				db.Products[i].Name = data.Name
+			}
+			if err := db.Save(); err != nil {
+				return 0, err
+			}
+			return data.ID, nil
+		}
+	}
+	return 0, ErrProductNotFound
+}
+
+// NewProject appends a project to the given product and writes its TOML.
 // projectID = len(product.Projects) + 1. Collisions on disk are acceptable by
 // your policy (we overwrite TOML).
-func (prd *ProductType) AddProject(projectName string) (*ProjectType, error) {
+func (prd *ProductType) NewProject(projectName string) (*ProjectType, error) {
+
 	if projectName == "" {
 		return nil, errors.New("project name cannot be empty")
 	}
@@ -371,15 +391,18 @@ func (prd *ProductType) AddProject(projectName string) (*ProjectType, error) {
 		LLM:       llm.DefaultClient,
 	}
 
-	if err := addedproject.SaveProject(); err != nil {
-		return nil, fmt.Errorf("error saving TOML, AddProject function: %w", err)
+
+	if err := addedproject.Save(); err != nil {
+		return nil, fmt.Errorf("error saving TOML, NewProject function: %w", err)
+
 	}
 
 	prd.Projects = append(prd.Projects, addedproject)
 	return &prd.Projects[len(prd.Projects)-1], nil
 }
 
-func (prj *ProjectType) SaveProject() error {
+// Save writes the project's data to its project.toml.
+func (prj *ProjectType) Save() error {
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	if err := os.MkdirAll(prjDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir project dir: %w", err)
@@ -408,8 +431,8 @@ func (prj *ProjectType) SaveProject() error {
 	return nil
 }
 
-// LoadProject loads a single project's TOML for this product.
-func (prj *ProjectType) LoadProject() error {
+// Load loads a single project's TOML for this product.
+func (prj *ProjectType) Load() error {
 	prjDir := projectDir(prj.ProductID, prj.ID)
 	tomlPath := filepath.Join(prjDir, projectTOML)
 
@@ -443,8 +466,7 @@ func (prd *ProductType) LoadProjects() error {
 	}
 	for i := range prd.Projects {
 		prd.Projects[i].ProductID = prd.ID
-		err := prd.Projects[i].LoadProject()
-		if err != nil {
+		if err := prd.Projects[i].Load(); err != nil {
 			return err
 		}
 	}
@@ -454,8 +476,9 @@ func (prd *ProductType) LoadProjects() error {
 // LoadAllProjects loads all projects for all products in the database.
 func (db *Database) LoadAllProjects() error {
 	for i := range db.Products {
-		err := db.Products[i].LoadProjects()
-		if err != nil {
+
+		if err := db.Products[i].LoadProjects(); err != nil {
+
 			return err
 		}
 	}
@@ -667,7 +690,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 	}
 
 	// Persist to project.toml
-	if err := prj.SaveProject(); err != nil {
+	if err := prj.Save(); err != nil {
 		return *ptr, err
 	}
 	return *ptr, nil

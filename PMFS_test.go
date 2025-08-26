@@ -22,15 +22,17 @@ func TestLoadSetupCreatesIndex(t *testing.T) {
 	}
 }
 
-func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
+func TestNewProductCreatesDirAndUpdatesIndex(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	db, err := LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -48,26 +50,51 @@ func TestAddProductCreatesDirAndUpdatesIndex(t *testing.T) {
 	}
 }
 
-func TestAddProjectWritesTomlAndUpdatesIndex(t *testing.T) {
+func TestModifyProductUpdatesIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	dir := t.TempDir()
+	db, err := LoadSetup(dir)
+
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	id, err := db.NewProduct(ProductData{Name: "prod1"})
+	if err != nil {
+		t.Fatalf("NewProduct: %v", err)
+	}
+	if _, err := db.ModifyProduct(ProductData{ID: id, Name: "prod1-upd"}); err != nil {
+		t.Fatalf("ModifyProduct: %v", err)
+	}
+	db2, err := LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	if db2.Products[0].Name != "prod1-upd" {
+		t.Fatalf("product not updated: %#v", db2.Products[0])
+	}
+}
+
+func TestNewProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
 	dir := t.TempDir()
 	db, err := LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
-	}
-	if err := db.Save(); err != nil {
-		t.Fatalf("Save: %v", err)
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.AddProject("prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if _, err := prd.NewProject("prj1"); err != nil {
+		t.Fatalf("NewProject: %v", err)
+	}
+	if err := db.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -98,19 +125,20 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	if err := db.Save(); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
+
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.AddProject("prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+
+	if _, err := prd.NewProject("prj1"); err != nil {
+		t.Fatalf("NewProject: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -147,8 +175,8 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 	// ensure metadata persisted to project.toml
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.Attachments) != 1 || prjReload.D.Attachments[0].Filename != fname {
 		t.Fatalf("attachment not persisted: %#v", prjReload.D.Attachments)
@@ -170,19 +198,20 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
-	if err := db.Save(); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
+
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.AddProject("prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+
+	if _, err := prd.NewProject("prj1"); err != nil {
+		t.Fatalf("NewProject: %v", err)
+
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -226,8 +255,8 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 	// ensure requirements persisted to disk
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.PotentialRequirements) != len(mockReqs) {
 		t.Fatalf("expected %d persisted requirements, got %d", len(mockReqs), len(prjReload.D.PotentialRequirements))
@@ -249,23 +278,22 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
-	}
-	if err := db.Save(); err != nil {
-		t.Fatalf("Save: %v", err)
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.AddProject("prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if _, err := prd.NewProject("prj1"); err != nil {
+		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
+
 	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
@@ -302,8 +330,8 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	}
 
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.PotentialRequirements) == 0 {
 		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
@@ -327,23 +355,22 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
-	if _, err := db.AddProduct("prod1"); err != nil {
-		t.Fatalf("AddProduct: %v", err)
-	}
-	if err := db.Save(); err != nil {
-		t.Fatalf("Save: %v", err)
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
 	}
 	db, err = LoadSetup(dir)
 	if err != nil {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.AddProject("prj1"); err != nil {
-		t.Fatalf("AddProject: %v", err)
+	if _, err := prd.NewProject("prj1"); err != nil {
+		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
+
 	prj := &db.Products[0].Projects[0]
 
 	inputDir := filepath.Join(dir, "input")
@@ -376,8 +403,8 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	}
 
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.LoadProject(); err != nil {
-		t.Fatalf("LoadProject: %v", err)
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if len(prjReload.D.Attachments) != len(files) {
 		t.Fatalf("expected %d attachments persisted, got %d", len(files), len(prjReload.D.Attachments))

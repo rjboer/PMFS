@@ -102,7 +102,9 @@ sequenceDiagram
 
     Dev->>PMFS: LoadSetup(path)
     PMFS-->>Dev: create base folders, read index.toml
-    Dev->>PMFS: AddProduct/AddProject
+
+    Dev->>PMFS: NewProduct/NewProject
+
     PMFS-->>Dev: write project.toml
 ```
 
@@ -161,11 +163,14 @@ go run ./examples/full
 ## Available Functions
 
 - `LoadSetup(path string) (*Database, error)`
-- `(*Database) AddProduct(name string) (*ProductType, error)`
+
+- `(*Database) NewProduct(data ProductData) (int, error)`
+- `(*Database) ModifyProduct(data ProductData) (int, error)`
 - `(*Database) Save() error`
-- `(*ProductType) AddProject(name string) (*ProjectType, error)`
-- `(*ProjectType) SaveProject() error`
-- `(*ProjectType) LoadProject() error`
+- `(*ProductType) NewProject(name string) (*ProjectType, error)`
+- `(*ProjectType) Save() error`
+- `(*ProjectType) Load() error`
+
 - `(*ProductType) LoadProjects() error`
 - `(*Database) LoadAllProjects() error`
 - `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
