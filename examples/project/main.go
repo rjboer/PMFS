@@ -39,10 +39,13 @@ func main() {
 		log.Fatalf("NewProduct: %v", err)
 	}
 	p := &db.Products[id-1]
-	prj, err := p.NewProject("Demo Project")
+	prjID, err := p.NewProject(db, PMFS.ProjectData{Name: "Demo Project"})
 	if err != nil {
 		log.Fatalf("NewProject: %v", err)
-
+	}
+	prj, err := p.Project(prjID)
+	if err != nil {
+		log.Fatalf("Project: %v", err)
 	}
 	prj.LLM = llm.DefaultClient
 	if err := db.Save(); err != nil {

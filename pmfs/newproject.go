@@ -38,12 +38,13 @@ func NewProject(name string) (*ProjectType, error) {
 
 	prd := &db.Products[0]
 
-	prj, err := prd.NewProject(name)
-
+	id, err := prd.NewProject(db, PMFS.ProjectData{Name: name})
 	if err != nil {
 		return nil, err
 	}
-	if err := db.Save(); err != nil {
+
+	prj, err := prd.Project(id)
+	if err != nil {
 		return nil, err
 	}
 	return prj, nil

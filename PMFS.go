@@ -124,6 +124,7 @@ type ProjectType struct {
 }
 
 type ProjectData struct {
+	Name         string        `json:"name" toml:"name"`
 	Scope        string        `json:"scope" toml:"scope"`
 	StartDate    time.Time     `json:"start_date" toml:"start_date"`
 	EndDate      time.Time     `json:"end_date" toml:"end_date"`
@@ -324,7 +325,6 @@ func loadDatabase() (*Database, error) {
 // Public ops
 // -----------------------------------------------------------------------------
 
-
 // ProductData holds metadata for products persisted in the index.
 type ProductData struct {
 	ID   int    `json:"id" toml:"id"`
@@ -367,38 +367,39 @@ func (db *Database) ModifyProduct(data ProductData) (int, error) {
 	return 0, ErrProductNotFound
 }
 
-// NewProject appends a project to the given product and writes its TOML.
-// projectID = len(product.Projects) + 1. Collisions on disk are acceptable by
-// your policy (we overwrite TOML).
-func (prd *ProductType) NewProject(projectName string) (*ProjectType, error) {
-
-	if projectName == "" {
-		return nil, errors.New("project name cannot be empty")
+// NewProject appends a project to the product, persists it to project.toml and
+// updates the database index. The new project ID is len(product.Projects)+1.
+func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) {
+	// basic validation
+	if strings.TrimSpace(data.Name) == "" {
+		return 0, errors.New("project name cannot be empty")
 	}
 
 	newPrjID := len(prd.Projects) + 1
 	prjDir := projectDir(prd.ID, newPrjID)
 
-	// Ensure dir (idempotent)
+	// ensure directory exists
 	if err := os.MkdirAll(prjDir, 0o755); err != nil {
-		return nil, fmt.Errorf("mkdir project dir: %w", err)
+		return 0, fmt.Errorf("mkdir project dir: %w", err)
 	}
 
-	addedproject := ProjectType{
+	prj := ProjectType{
 		ID:        newPrjID,
 		ProductID: prd.ID,
-		Name:      projectName,
+		Name:      data.Name,
+		D:         data,
 		LLM:       llm.DefaultClient,
 	}
 
-
-	if err := addedproject.Save(); err != nil {
-		return nil, fmt.Errorf("error saving TOML, NewProject function: %w", err)
-
+	if err := prj.Save(); err != nil {
+		return 0, fmt.Errorf("error saving TOML, NewProject function: %w", err)
 	}
 
-	prd.Projects = append(prd.Projects, addedproject)
-	return &prd.Projects[len(prd.Projects)-1], nil
+	prd.Projects = append(prd.Projects, prj)
+	if err := db.Save(); err != nil {
+		return 0, err
+	}
+	return newPrjID, nil
 }
 
 // Save writes the project's data to its project.toml.
@@ -457,6 +458,22 @@ func (prj *ProjectType) Load() error {
 	prj.D = dp.D
 	prj.LLM = llm.DefaultClient
 	return nil
+}
+
+// Project returns the project with the given ID for this product by loading it
+// from its on-disk TOML. If the project is not listed in the product, an
+// ErrProjectNotFound is returned.
+func (prd *ProductType) Project(id int) (*ProjectType, error) {
+	for i := range prd.Projects {
+		if prd.Projects[i].ID == id {
+			prd.Projects[i].ProductID = prd.ID
+			if err := prd.Projects[i].Load(); err != nil {
+				return nil, err
+			}
+			return &prd.Projects[i], nil
+		}
+	}
+	return nil, ErrProjectNotFound
 }
 
 // LoadProjects loads all listed projects for this product by reading each project.toml.
