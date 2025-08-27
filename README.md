@@ -167,7 +167,8 @@ go run ./examples/full
 - `(*Database) NewProduct(data ProductData) (int, error)`
 - `(*Database) ModifyProduct(data ProductData) (int, error)`
 - `(*Database) Save() error`
-- `(*ProductType) NewProject(name string) (*ProjectType, error)`
+- `(*ProductType) NewProject(db *Database, data ProjectData) (int, error)`
+- `(*ProductType) Project(id int) (*ProjectType, error)`
 - `(*ProjectType) Save() error`
 - `(*ProjectType) Load() error`
 

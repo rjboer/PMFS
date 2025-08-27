@@ -89,7 +89,7 @@ func TestNewProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject("prj1"); err != nil {
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -136,7 +136,7 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 	prd := &db.Products[0]
 
-	if _, err := prd.NewProject("prj1"); err != nil {
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 
 	}
@@ -209,7 +209,7 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 	prd := &db.Products[0]
 
-	if _, err := prd.NewProject("prj1"); err != nil {
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 
 	}
@@ -287,7 +287,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject("prj1"); err != nil {
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -364,7 +364,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject("prj1"); err != nil {
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
