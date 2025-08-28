@@ -168,6 +168,7 @@ go run ./examples/full
 - `(*Database) ModifyProduct(data ProductData) (int, error)`
 - `(*Database) Save() error`
 - `(*ProductType) NewProject(db *Database, data ProjectData) (int, error)`
+- `(*ProductType) ModifyProject(db *Database, id int, data ProjectData) (int, error)`
 - `(*ProductType) Project(id int) (*ProjectType, error)`
 - `(*ProjectType) Save() error`
 - `(*ProjectType) Load() error`

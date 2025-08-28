@@ -112,6 +112,50 @@ func TestNewProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 	}
 }
 
+func TestModifyProjectUpdatesTomlAndIndex(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	dir := t.TempDir()
+	db, err := LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
+	}
+
+	db, err = LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	prd := &db.Products[0]
+	id, err := prd.NewProject(db, ProjectData{Name: "prj1"})
+	if err != nil {
+		t.Fatalf("NewProject: %v", err)
+	}
+	if _, err := prd.ModifyProject(db, id, ProjectData{Name: "prj1-upd"}); err != nil {
+		t.Fatalf("ModifyProject: %v", err)
+	}
+
+	db2, err := LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	if db2.Products[0].Projects[0].Name != "prj1-upd" {
+		t.Fatalf("project not updated in index: %#v", db2.Products[0].Projects[0])
+	}
+
+	prjReload := ProjectType{ID: id, ProductID: prd.ID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if prjReload.Name != "prj1-upd" {
+		t.Fatalf("project toml not updated: %s", prjReload.Name)
+	}
+	if prjReload.LLM == nil {
+		t.Fatalf("LLM not set to default")
+	}
+}
+
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	// mock Gemini client to avoid external calls
 	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {

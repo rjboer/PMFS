@@ -17,6 +17,9 @@ Writes the in-memory database to `index.toml`.
 ## (*ProductType) NewProject
 Adds a new project to a product, writes its `project.toml` and updates the index.
 
+## (*ProductType) ModifyProject
+Updates an existing project and persists its `project.toml` and the index.
+
 ## (*ProductType) Project
 Loads and returns a specific project by ID.
 
