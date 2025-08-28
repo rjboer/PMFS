@@ -26,9 +26,6 @@ func main() {
 		if _, err := p.NewProject(db, PMFS.ProjectData{Name: "Example Project"}); err != nil {
 			log.Fatalf("add project: %v", err)
 		}
-		if err := db.Save(); err != nil {
-			log.Fatalf("save index: %v", err)
-		}
 	}
 
 	for _, p := range db.Products {

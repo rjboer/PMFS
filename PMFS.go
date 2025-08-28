@@ -70,6 +70,7 @@ func setBaseDir(dir string) {
 type Database struct {
 	BaseDir  string        `toml:"-"`
 	Products []ProductType `toml:"products"`
+	LLM      llm.Client    `toml:"-" json:"-"`
 }
 
 // LoadSetup initialises the database at the provided path. It sets the
@@ -91,14 +92,7 @@ func LoadSetup(path string) (*Database, error) {
 		return nil, err
 	}
 	db.BaseDir = path
-
-	// Ensure every project uses the default LLM client configured via
-	// the GEMINI_API_KEY environment variable.
-	for i := range db.Products {
-		for j := range db.Products[i].Projects {
-			db.Products[i].Projects[j].LLM = llm.DefaultClient
-		}
-	}
+	db.LLM = llm.DefaultClient
 
 	return db, nil
 }
@@ -128,8 +122,7 @@ type ProjectType struct {
 	// D contains the heavy project data and is stored only in each
 	// project's individual TOML file. The field is skipped when the
 	// index is written to disk so the index remains lightweight.
-	D   ProjectData `json:"projectdata" toml:"-"`
-	LLM llm.Client  `json:"-" toml:"-"`
+	D ProjectData `json:"projectdata" toml:"-"`
 }
 
 type ProjectData struct {
@@ -183,15 +176,15 @@ func FromGemini(req gemini.Requirement) Requirement {
 }
 
 // Analyse sends the requirement description to the provided role/question pair
-// using the project's configured LLM and returns the result.
-func (r *Requirement) Analyse(prj *ProjectType, role, questionID string) (bool, string, error) {
-	return interact.RunQuestion(prj.LLM, role, questionID, r.Description)
+// using the database's configured LLM and returns the result.
+func (r *Requirement) Analyse(db *Database, role, questionID string) (bool, string, error) {
+	return interact.RunQuestion(db.LLM, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
-// using the project's configured LLM and stores the results on the requirement.
-func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
-	res, err := gates.Evaluate(prj.LLM, gateIDs, r.Description)
+// using the database's configured LLM and stores the results on the requirement.
+func (r *Requirement) EvaluateGates(db *Database, gateIDs []string) error {
+	res, err := gates.Evaluate(db.LLM, gateIDs, r.Description)
 	if err != nil {
 		return err
 	}
@@ -199,15 +192,14 @@ func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
 	return nil
 }
 
-
 // QualityControlAI runs Analyse and EvaluateGates on the requirement.
 // It returns the result of Analyse and stores gate evaluation results on the requirement.
-func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string, gateIDs []string) (bool, string, error) {
-	pass, ans, err := r.Analyse(prj, role, questionID)
+func (r *Requirement) QualityControlAI(db *Database, role, questionID string, gateIDs []string) (bool, string, error) {
+	pass, ans, err := r.Analyse(db, role, questionID)
 	if err != nil {
 		return pass, ans, err
 	}
-	if err := r.EvaluateGates(prj, gateIDs); err != nil {
+	if err := r.EvaluateGates(db, gateIDs); err != nil {
 		return pass, ans, err
 	}
 	return pass, ans, nil
@@ -216,9 +208,9 @@ func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string
 // SuggestOthers asks the client for related potential requirements based on
 
 // this requirement's description and returns them.
-func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
+func (r *Requirement) SuggestOthers(db *Database) ([]Requirement, error) {
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
-	resp, err := prj.LLM.Ask(prompt)
+	resp, err := db.LLM.Ask(prompt)
 	if err != nil {
 		return nil, err
 	}
@@ -242,23 +234,22 @@ type Attachment struct {
 // Analyze processes the attachment using the default strategy and appends
 // proposed requirements. It is kept for backward compatibility and delegates to
 // GenerateRequirements with an empty strategy.
-func (att *Attachment) Analyze(prj *ProjectType) error {
-	return att.GenerateRequirements(prj, "")
+func (att *Attachment) Analyze(db *Database, prj *ProjectType) error {
+	return att.GenerateRequirements(db, prj, "")
 }
 
 // GenerateRequirements analyzes the attachment using the provided heuristic
 // strategy and appends any discovered requirements to the project's potential
 // requirements slice. An empty strategy falls back to the default LLM-based
 // analysis (currently Gemini).
-func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) error {
+func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, strategy string) error {
 	if strategy == "" {
 		strategy = "gemini"
 	}
 
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 
-	reqs, err := prj.LLM.AnalyzeAttachment(full)
-
+	reqs, err := db.LLM.AnalyzeAttachment(full)
 	if err != nil {
 		return err
 	}
@@ -272,7 +263,7 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 // Analyse loads the attachment content and asks a role-specific question about it.
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
-func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
+func (att *Attachment) Analyse(db *Database, role, questionID string, prj *ProjectType) (bool, string, error) {
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
 	if i := strings.Index(mt, ";"); i >= 0 {
@@ -286,7 +277,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = string(b)
 	} else {
-		reqs, err := prj.LLM.AnalyzeAttachment(full)
+		reqs, err := db.LLM.AnalyzeAttachment(full)
 		if err != nil {
 			return false, "", err
 		}
@@ -299,7 +290,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = sb.String()
 	}
-	return interact.RunQuestion(prj.LLM, role, questionID, content)
+	return interact.RunQuestion(db.LLM, role, questionID, content)
 }
 
 // ChangeLog records a change made to a requirement.
@@ -428,7 +419,6 @@ func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) 
 		ProductID: prd.ID,
 		Name:      data.Name,
 		D:         data,
-		LLM:       llm.DefaultClient,
 	}
 
 	if err := prj.Save(); err != nil {
@@ -440,6 +430,29 @@ func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) 
 		return 0, err
 	}
 	return newPrjID, nil
+}
+
+// ModifyProject updates a project's fields and persists both the project and index.
+func (prd *ProductType) ModifyProject(db *Database, id int, data ProjectData) (int, error) {
+	for i := range prd.Projects {
+		if prd.Projects[i].ID == id {
+			if data.Name != "" {
+				prd.Projects[i].Name = data.Name
+				prd.Projects[i].D.Name = data.Name
+			} else {
+				data.Name = prd.Projects[i].D.Name
+			}
+			prd.Projects[i].D = data
+			if err := prd.Projects[i].Save(); err != nil {
+				return 0, err
+			}
+			if err := db.Save(); err != nil {
+				return 0, err
+			}
+			return id, nil
+		}
+	}
+	return 0, ErrProjectNotFound
 }
 
 // Save writes the project's data to its project.toml.
@@ -496,7 +509,6 @@ func (prj *ProjectType) Load() error {
 	prj.ProductID = dp.ProductID
 	prj.Name = dp.Name
 	prj.D = dp.D
-	prj.LLM = llm.DefaultClient
 	return nil
 }
 
@@ -657,7 +669,7 @@ func detectMimeType(path string) string {
 }
 
 // IngestInputDir scans inputDir and ingests all regular files into attachments/.
-func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
+func (prj *ProjectType) IngestInputDir(db *Database, inputDir string) ([]Attachment, error) {
 	entries, err := os.ReadDir(inputDir)
 	if err != nil {
 		return nil, err
@@ -679,7 +691,7 @@ func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 
 	ingested := make([]Attachment, 0, len(names))
 	for _, n := range names {
-		att, err := prj.AddAttachmentFromInput(inputDir, n)
+		att, err := prj.AddAttachmentFromInput(db, inputDir, n)
 		if err != nil {
 			return ingested, err // fail fast; or change to continue if you prefer
 		}
@@ -690,7 +702,7 @@ func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 
 // AddAttachmentFromInput moves a single file from inputDir into this project's
 // attachments/<id>/ folder, records minimal metadata, and saves the project.
-func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
+func (prj *ProjectType) AddAttachmentFromInput(db *Database, inputDir, filename string) (Attachment, error) {
 	inputPath := filepath.Join(inputDir, filename)
 	if ok, err := fileExists(inputPath); err != nil {
 		return Attachment{}, err
@@ -742,7 +754,7 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 	ptr := &prj.D.Attachments[len(prj.D.Attachments)-1]
-	if err := ptr.Analyze(prj); err != nil {
+	if err := ptr.Analyze(db, prj); err != nil {
 		return *ptr, err
 	}
 
@@ -754,9 +766,9 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 }
 
 // QualityControlScanALL runs QualityControlAI on every requirement in the project.
-func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs []string) error {
+func (prj *ProjectType) QualityControlScanALL(db *Database, role, questionID string, gateIDs []string) error {
 	for i := range prj.D.Requirements {
-		if _, _, err := prj.D.Requirements[i].QualityControlAI(prj, role, questionID, gateIDs); err != nil {
+		if _, _, err := prj.D.Requirements[i].QualityControlAI(db, role, questionID, gateIDs); err != nil {
 			return err
 		}
 	}

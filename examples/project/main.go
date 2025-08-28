@@ -8,7 +8,6 @@ import (
 	"time"
 
 	PMFS "github.com/rjboer/PMFS"
-	llm "github.com/rjboer/PMFS/pmfs/llm"
 )
 
 func copyFile(src, dst string) error {
@@ -47,10 +46,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Project: %v", err)
 	}
-	prj.LLM = llm.DefaultClient
-	if err := db.Save(); err != nil {
-		log.Fatalf("Save: %v", err)
-	}
 
 	attDir := filepath.Join(dir, "products", "1", "projects", "1", "attachments", "1")
 	if err := os.MkdirAll(attDir, 0o755); err != nil {
@@ -71,13 +66,13 @@ func main() {
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 
-	if err := prj.D.Attachments[0].Analyze(prj); err != nil {
+	if err := prj.D.Attachments[0].Analyze(db, prj); err != nil {
 		log.Fatalf("Attachment Analyze: %v", err)
 	}
 
 	for i := range prj.D.PotentialRequirements {
 		r := &prj.D.PotentialRequirements[i]
-		pass, follow, err := r.Analyse(prj, "product_manager", "1")
+		pass, follow, err := r.Analyse(db, "product_manager", "1")
 		if err != nil {
 			log.Fatalf("Requirement Analyse: %v", err)
 		}
@@ -85,7 +80,7 @@ func main() {
 		if follow != "" {
 			fmt.Printf("  Follow-up: %s\n", follow)
 		}
-		if err := r.EvaluateGates(prj, []string{"clarity-form-1"}); err != nil {
+		if err := r.EvaluateGates(db, []string{"clarity-form-1"}); err != nil {
 			log.Fatalf("EvaluateGates: %v", err)
 		}
 		for _, gr := range r.GateResults {
