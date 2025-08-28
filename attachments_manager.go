@@ -9,11 +9,12 @@ import (
 // AttachmentManager provides helper methods for managing attachments of a project.
 type AttachmentManager struct {
 	prj *ProjectType
+	db  *Database
 }
 
 // Attachments returns an AttachmentManager for this project.
-func (prj *ProjectType) Attachments() AttachmentManager {
-	return AttachmentManager{prj: prj}
+func (prj *ProjectType) Attachments(db *Database) AttachmentManager {
+	return AttachmentManager{prj: prj, db: db}
 }
 
 // AddFromInputFolder scans the project's default "input" directory and ingests
@@ -45,7 +46,7 @@ func (am AttachmentManager) AddFromInputFolder() ([]Attachment, error) {
 
 	ingested := make([]Attachment, 0, len(names))
 	for _, n := range names {
-		att, err := am.prj.AddAttachmentFromInput(inputDir, n)
+		att, err := am.prj.AddAttachmentFromInput(am.db, inputDir, n)
 		if err != nil {
 			return ingested, err
 		}

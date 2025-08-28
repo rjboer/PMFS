@@ -151,7 +151,9 @@ func TestModifyProjectUpdatesTomlAndIndex(t *testing.T) {
 	if prjReload.Name != "prj1-upd" {
 		t.Fatalf("project toml not updated: %s", prjReload.Name)
 	}
-	if prjReload.LLM == nil {
+
+	if db2.LLM == nil {
+
 		t.Fatalf("LLM not set to default")
 	}
 }
@@ -199,7 +201,7 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -249,7 +251,8 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	}})
 	defer llm.SetClient(orig)
 
-	if err := att.GenerateRequirements(prj, ""); err != nil {
+	db := &Database{LLM: llm.DefaultClient}
+	if err := att.GenerateRequirements(db, prj, ""); err != nil {
 		t.Fatalf("GenerateRequirements: %v", err)
 	}
 	if !att.Analyzed {
@@ -302,7 +305,7 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -381,7 +384,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -458,7 +461,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		}
 	}
 
-	atts, err := prj.IngestInputDir(inputDir)
+	atts, err := prj.IngestInputDir(db, inputDir)
 	if err != nil {
 		t.Fatalf("IngestInputDir: %v", err)
 	}
@@ -538,7 +541,7 @@ func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
 		}
 	}
 
-	atts, err := prj.Attachments().AddFromInputFolder()
+	atts, err := prj.Attachments(db).AddFromInputFolder()
 	if err != nil {
 		t.Fatalf("AddFromInputFolder: %v", err)
 	}

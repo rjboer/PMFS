@@ -12,12 +12,17 @@ import (
 // evaluate it against quality gates. Requires the GEMINI_API_KEY environment
 // variable.
 func main() {
-	PMFS.SetBaseDir(".")
+
+	db, err := PMFS.LoadSetup(".")
+	if err != nil {
+		log.Fatalf("LoadSetup: %v", err)
+	}
+
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
 	// Analyze a document to extract potential requirements.
-	if err := att.Analyze(&prj); err != nil {
+	if err := att.Analyze(db, &prj); err != nil {
 		log.Fatalf("analyze: %v", err)
 	}
 	if len(prj.D.PotentialRequirements) == 0 {
@@ -30,13 +35,13 @@ func main() {
 
 	// With the client configured above, the requirement can query roles and
 	// evaluate gates directly.
-	pass, follow, _ := r.Analyse(&prj, "qa_lead", "1")
+	pass, follow, _ := r.Analyse(db, "qa_lead", "1")
 	fmt.Printf("QA Lead agrees? %v\n", pass)
 	if follow != "" {
 		fmt.Printf("Follow-up: %s\n", follow)
 	}
 
-	_ = r.EvaluateGates(&prj, []string{"clarity-form-1", "duplicate-1"})
+	_ = r.EvaluateGates(db, []string{"clarity-form-1", "duplicate-1"})
 	for _, gr := range r.GateResults {
 		fmt.Printf("Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
 	}
