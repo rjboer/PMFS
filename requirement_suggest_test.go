@@ -18,7 +18,8 @@ func TestRequirementSuggestOthers(t *testing.T) {
 		}
 		return mockResp, nil
 	}}
-	reqs, err := r.SuggestOthers(client)
+	prj := &ProjectType{LLM: client}
+	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
@@ -32,7 +33,8 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		return "not json", nil
 	}}
-	if _, err := r.SuggestOthers(client); err == nil {
+	prj := &ProjectType{LLM: client}
+	if _, err := r.SuggestOthers(prj); err == nil {
 		t.Fatalf("expected error for malformed response")
 	}
 }
