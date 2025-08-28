@@ -91,6 +91,15 @@ func LoadSetup(path string) (*Database, error) {
 		return nil, err
 	}
 	db.BaseDir = path
+
+	// Ensure every project uses the default LLM client configured via
+	// the GEMINI_API_KEY environment variable.
+	for i := range db.Products {
+		for j := range db.Products[i].Projects {
+			db.Products[i].Projects[j].LLM = llm.DefaultClient
+		}
+	}
+
 	return db, nil
 }
 
@@ -190,6 +199,7 @@ func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
 	return nil
 }
 
+
 // QualityControlAI runs Analyse and EvaluateGates on the requirement.
 // It returns the result of Analyse and stores gate evaluation results on the requirement.
 func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string, gateIDs []string) (bool, string, error) {
@@ -204,10 +214,11 @@ func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string
 }
 
 // SuggestOthers asks the client for related potential requirements based on
+
 // this requirement's description and returns them.
-func (r *Requirement) SuggestOthers(client gemini.Client) ([]Requirement, error) {
+func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
-	resp, err := client.Ask(prompt)
+	resp, err := prj.LLM.Ask(prompt)
 	if err != nil {
 		return nil, err
 	}
@@ -228,10 +239,26 @@ type Attachment struct {
 	Analyzed bool      `json:"analyzed" toml:"analyzed"`
 }
 
-// Analyze processes the attachment with Gemini and appends proposed requirements.
+// Analyze processes the attachment using the default strategy and appends
+// proposed requirements. It is kept for backward compatibility and delegates to
+// GenerateRequirements with an empty strategy.
 func (att *Attachment) Analyze(prj *ProjectType) error {
+	return att.GenerateRequirements(prj, "")
+}
+
+// GenerateRequirements analyzes the attachment using the provided heuristic
+// strategy and appends any discovered requirements to the project's potential
+// requirements slice. An empty strategy falls back to the default LLM-based
+// analysis (currently Gemini).
+func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) error {
+	if strategy == "" {
+		strategy = "gemini"
+	}
+
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
-	reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
+
+	reqs, err := prj.LLM.AnalyzeAttachment(full)
+
 	if err != nil {
 		return err
 	}
@@ -259,7 +286,7 @@ func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool,
 		}
 		content = string(b)
 	} else {
-		reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
+		reqs, err := prj.LLM.AnalyzeAttachment(full)
 		if err != nil {
 			return false, "", err
 		}

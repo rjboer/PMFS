@@ -186,6 +186,36 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 }
 
+func TestAttachmentGenerateRequirements(t *testing.T) {
+	mockReqs := []gemini.Requirement{{Name: "R1", Description: "D1"}}
+	dir := t.TempDir()
+	old := baseDir
+	SetBaseDir(dir)
+	defer SetBaseDir(old)
+
+	prj := &ProjectType{ProductID: 1, ID: 2}
+	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
+	expected := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+		if path != expected {
+			t.Fatalf("AnalyzeAttachment called with %s, want %s", path, expected)
+		}
+		return mockReqs, nil
+	}})
+	defer llm.SetClient(orig)
+
+	if err := att.GenerateRequirements(prj, ""); err != nil {
+		t.Fatalf("GenerateRequirements: %v", err)
+	}
+	if !att.Analyzed {
+		t.Fatalf("attachment not marked analyzed")
+	}
+	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+}
+
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
 	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
@@ -419,5 +449,74 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 	}
 	if len(dbReload.Products) != 1 || len(dbReload.Products[0].Projects[0].D.Attachments) != len(files) {
 		t.Fatalf("attachments not loaded via LoadAllProjects: %#v", dbReload.Products[0].Projects[0].D.Attachments)
+	}
+}
+
+func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+		return nil, nil
+	}})
+	defer llm.SetClient(orig)
+
+	dir := t.TempDir()
+	db, err := LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
+	}
+
+	db, err = LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	prd := &db.Products[0]
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+		t.Fatalf("NewProject: %v", err)
+	}
+	if err := db.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	prj := &db.Products[0].Projects[0]
+
+	prjDir := filepath.Join(dir, productsDir, "1", "projects", "1")
+	inputDir := filepath.Join(prjDir, "input")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatalf("Mkdir input: %v", err)
+	}
+	files := []string{"a.txt", "b.txt"}
+	for _, f := range files {
+		if err := os.WriteFile(filepath.Join(inputDir, f), []byte(f), 0o644); err != nil {
+			t.Fatalf("WriteFile %s: %v", f, err)
+		}
+	}
+
+	atts, err := prj.Attachments().AddFromInputFolder()
+	if err != nil {
+		t.Fatalf("AddFromInputFolder: %v", err)
+	}
+	if len(atts) != len(files) {
+		t.Fatalf("expected %d attachments, got %d", len(files), len(atts))
+	}
+
+	for i, name := range files {
+		dst := filepath.Join(prjDir, "attachments", strconv.Itoa(i+1), name)
+		if _, err := os.Stat(dst); err != nil {
+			t.Fatalf("missing moved file %s: %v", dst, err)
+		}
+		if _, err := os.Stat(filepath.Join(inputDir, name)); !os.IsNotExist(err) {
+			t.Fatalf("source file %s still exists", name)
+		}
+	}
+
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(prjReload.D.Attachments) != len(files) {
+		t.Fatalf("expected %d attachments persisted, got %d", len(files), len(prjReload.D.Attachments))
 	}
 }
