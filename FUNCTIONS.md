@@ -38,6 +38,12 @@ Scans a directory and ingests each file as an attachment.
 ## (*ProjectType) AddAttachmentFromInput
 Moves a single file into the project's attachments and records minimal metadata.
 
+## (*ProjectType) Attachments
+Returns an AttachmentManager for working with a project's attachments.
+
+## (*AttachmentManager) AddFromInputFolder
+Scans the project's default `input` directory and ingests each file as an attachment.
+
 ## FromGemini
 Converts a Gemini requirement into a PMFS requirement by copying its name and description.
 

@@ -421,3 +421,72 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		t.Fatalf("attachments not loaded via LoadAllProjects: %#v", dbReload.Products[0].Projects[0].D.Attachments)
 	}
 }
+
+func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+		return nil, nil
+	}})
+	defer llm.SetClient(orig)
+
+	dir := t.TempDir()
+	db, err := LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+
+	if _, err := db.NewProduct(ProductData{Name: "prod1"}); err != nil {
+		t.Fatalf("NewProduct: %v", err)
+	}
+
+	db, err = LoadSetup(dir)
+	if err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	prd := &db.Products[0]
+	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+		t.Fatalf("NewProject: %v", err)
+	}
+	if err := db.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	prj := &db.Products[0].Projects[0]
+
+	prjDir := filepath.Join(dir, productsDir, "1", "projects", "1")
+	inputDir := filepath.Join(prjDir, "input")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatalf("Mkdir input: %v", err)
+	}
+	files := []string{"a.txt", "b.txt"}
+	for _, f := range files {
+		if err := os.WriteFile(filepath.Join(inputDir, f), []byte(f), 0o644); err != nil {
+			t.Fatalf("WriteFile %s: %v", f, err)
+		}
+	}
+
+	atts, err := prj.Attachments().AddFromInputFolder()
+	if err != nil {
+		t.Fatalf("AddFromInputFolder: %v", err)
+	}
+	if len(atts) != len(files) {
+		t.Fatalf("expected %d attachments, got %d", len(files), len(atts))
+	}
+
+	for i, name := range files {
+		dst := filepath.Join(prjDir, "attachments", strconv.Itoa(i+1), name)
+		if _, err := os.Stat(dst); err != nil {
+			t.Fatalf("missing moved file %s: %v", dst, err)
+		}
+		if _, err := os.Stat(filepath.Join(inputDir, name)); !os.IsNotExist(err) {
+			t.Fatalf("source file %s still exists", name)
+		}
+	}
+
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(prjReload.D.Attachments) != len(files) {
+		t.Fatalf("expected %d attachments persisted, got %d", len(files), len(prjReload.D.Attachments))
+	}
+}
