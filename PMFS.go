@@ -199,7 +199,22 @@ func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
 	return nil
 }
 
-// SuggestOthers asks the project's LLM for related potential requirements based on
+
+// QualityControlAI runs Analyse and EvaluateGates on the requirement.
+// It returns the result of Analyse and stores gate evaluation results on the requirement.
+func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string, gateIDs []string) (bool, string, error) {
+	pass, ans, err := r.Analyse(prj, role, questionID)
+	if err != nil {
+		return pass, ans, err
+	}
+	if err := r.EvaluateGates(prj, gateIDs); err != nil {
+		return pass, ans, err
+	}
+	return pass, ans, nil
+}
+
+// SuggestOthers asks the client for related potential requirements based on
+
 // this requirement's description and returns them.
 func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
@@ -736,4 +751,14 @@ func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attac
 		return *ptr, err
 	}
 	return *ptr, nil
+}
+
+// QualityControlScanALL runs QualityControlAI on every requirement in the project.
+func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs []string) error {
+	for i := range prj.D.Requirements {
+		if _, _, err := prj.D.Requirements[i].QualityControlAI(prj, role, questionID, gateIDs); err != nil {
+			return err
+		}
+	}
+	return nil
 }
