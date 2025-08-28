@@ -176,6 +176,8 @@ go run ./examples/full
 - `(*Database) LoadAllProjects() error`
 - `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
 - `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
+- `(*ProjectType) Attachments() AttachmentManager`
+- `(*AttachmentManager) AddFromInputFolder() ([]Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`
 
 See [FUNCTIONS.md](FUNCTIONS.md) for detailed descriptions.
