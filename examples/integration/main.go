@@ -5,7 +5,6 @@ import (
 	"log"
 
 	PMFS "github.com/rjboer/PMFS"
-	llm "github.com/rjboer/PMFS/pmfs/llm"
 )
 
 // This example demonstrates a full flow using Gemini to analyze a document,
@@ -14,7 +13,7 @@ import (
 // variable.
 func main() {
 	PMFS.SetBaseDir(".")
-	prj := PMFS.ProjectType{ProductID: 0, ID: 0, LLM: llm.DefaultClient}
+	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
 	// Analyze a document to extract potential requirements.

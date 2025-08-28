@@ -132,6 +132,13 @@ type ProjectType struct {
 	LLM llm.Client  `json:"-" toml:"-"`
 }
 
+// ensureLLM assigns the package's default client if none is configured.
+func (prj *ProjectType) ensureLLM() {
+	if prj.LLM == nil {
+		prj.LLM = llm.DefaultClient
+	}
+}
+
 type ProjectData struct {
 	Name         string        `json:"name" toml:"name"`
 	Scope        string        `json:"scope" toml:"scope"`
@@ -185,12 +192,14 @@ func FromGemini(req gemini.Requirement) Requirement {
 // Analyse sends the requirement description to the provided role/question pair
 // using the project's configured LLM and returns the result.
 func (r *Requirement) Analyse(prj *ProjectType, role, questionID string) (bool, string, error) {
+	prj.ensureLLM()
 	return interact.RunQuestion(prj.LLM, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
 // using the project's configured LLM and stores the results on the requirement.
 func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
+	prj.ensureLLM()
 	res, err := gates.Evaluate(prj.LLM, gateIDs, r.Description)
 	if err != nil {
 		return err
@@ -198,7 +207,6 @@ func (r *Requirement) EvaluateGates(prj *ProjectType, gateIDs []string) error {
 	r.GateResults = res
 	return nil
 }
-
 
 // QualityControlAI runs Analyse and EvaluateGates on the requirement.
 // It returns the result of Analyse and stores gate evaluation results on the requirement.
@@ -217,6 +225,7 @@ func (r *Requirement) QualityControlAI(prj *ProjectType, role, questionID string
 
 // this requirement's description and returns them.
 func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
+	prj.ensureLLM()
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
 	resp, err := prj.LLM.Ask(prompt)
 	if err != nil {
@@ -255,10 +264,10 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 		strategy = "gemini"
 	}
 
+	prj.ensureLLM()
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 
 	reqs, err := prj.LLM.AnalyzeAttachment(full)
-
 	if err != nil {
 		return err
 	}
@@ -273,6 +282,7 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
 func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
+	prj.ensureLLM()
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
 	if i := strings.Index(mt, ";"); i >= 0 {
@@ -440,6 +450,30 @@ func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) 
 		return 0, err
 	}
 	return newPrjID, nil
+}
+
+// ModifyProject updates a project's fields and persists both the project and index.
+func (prd *ProductType) ModifyProject(db *Database, id int, data ProjectData) (int, error) {
+	for i := range prd.Projects {
+		if prd.Projects[i].ID == id {
+			if data.Name != "" {
+				prd.Projects[i].Name = data.Name
+				prd.Projects[i].D.Name = data.Name
+			} else {
+				data.Name = prd.Projects[i].D.Name
+			}
+			prd.Projects[i].D = data
+			prd.Projects[i].LLM = llm.DefaultClient
+			if err := prd.Projects[i].Save(); err != nil {
+				return 0, err
+			}
+			if err := db.Save(); err != nil {
+				return 0, err
+			}
+			return id, nil
+		}
+	}
+	return 0, ErrProjectNotFound
 }
 
 // Save writes the project's data to its project.toml.

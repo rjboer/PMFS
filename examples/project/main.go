@@ -8,7 +8,6 @@ import (
 	"time"
 
 	PMFS "github.com/rjboer/PMFS"
-	llm "github.com/rjboer/PMFS/pmfs/llm"
 )
 
 func copyFile(src, dst string) error {
@@ -46,10 +45,6 @@ func main() {
 	prj, err := p.Project(prjID)
 	if err != nil {
 		log.Fatalf("Project: %v", err)
-	}
-	prj.LLM = llm.DefaultClient
-	if err := db.Save(); err != nil {
-		log.Fatalf("Save: %v", err)
 	}
 
 	attDir := filepath.Join(dir, "products", "1", "projects", "1", "attachments", "1")
