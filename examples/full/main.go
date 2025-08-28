@@ -13,10 +13,12 @@ import (
 // about each requirement, and evaluating them against quality gates. Requires
 // the GEMINI_API_KEY environment variable.
 func main() {
+
 	db, err := PMFS.LoadSetup(".")
 	if err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
+
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 

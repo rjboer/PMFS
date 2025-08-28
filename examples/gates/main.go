@@ -15,7 +15,9 @@ func main() {
 		log.Fatalf("LoadSetup: %v", err)
 	}
 	req := PMFS.Requirement{Description: "The system shall be user friendly."}
+
 	if err := req.EvaluateGates(db, []string{"clarity-form-1"}); err != nil {
+
 		log.Fatalf("EvaluateGates: %v", err)
 	}
 	for _, gr := range req.GateResults {

@@ -125,6 +125,13 @@ type ProjectType struct {
 	D ProjectData `json:"projectdata" toml:"-"`
 }
 
+// ensureLLM assigns the package's default client if none is configured.
+func (prj *ProjectType) ensureLLM() {
+	if prj.LLM == nil {
+		prj.LLM = llm.DefaultClient
+	}
+}
+
 type ProjectData struct {
 	Name         string        `json:"name" toml:"name"`
 	Scope        string        `json:"scope" toml:"scope"`
@@ -176,6 +183,7 @@ func FromGemini(req gemini.Requirement) Requirement {
 }
 
 // Analyse sends the requirement description to the provided role/question pair
+
 // using the database's configured LLM and returns the result.
 func (r *Requirement) Analyse(db *Database, role, questionID string) (bool, string, error) {
 	return interact.RunQuestion(db.LLM, role, questionID, r.Description)
@@ -185,6 +193,7 @@ func (r *Requirement) Analyse(db *Database, role, questionID string) (bool, stri
 // using the database's configured LLM and stores the results on the requirement.
 func (r *Requirement) EvaluateGates(db *Database, gateIDs []string) error {
 	res, err := gates.Evaluate(db.LLM, gateIDs, r.Description)
+
 	if err != nil {
 		return err
 	}
@@ -208,7 +217,9 @@ func (r *Requirement) QualityControlAI(db *Database, role, questionID string, ga
 // SuggestOthers asks the client for related potential requirements based on
 
 // this requirement's description and returns them.
+
 func (r *Requirement) SuggestOthers(db *Database) ([]Requirement, error) {
+
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
 	resp, err := db.LLM.Ask(prompt)
 	if err != nil {
@@ -247,9 +258,12 @@ func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, stra
 		strategy = "gemini"
 	}
 
+	prj.ensureLLM()
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 
+
 	reqs, err := db.LLM.AnalyzeAttachment(full)
+
 	if err != nil {
 		return err
 	}
@@ -263,7 +277,9 @@ func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, stra
 // Analyse loads the attachment content and asks a role-specific question about it.
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
+
 func (att *Attachment) Analyse(db *Database, role, questionID string, prj *ProjectType) (bool, string, error) {
+
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
 	if i := strings.Index(mt, ";"); i >= 0 {
@@ -443,6 +459,7 @@ func (prd *ProductType) ModifyProject(db *Database, id int, data ProjectData) (i
 				data.Name = prd.Projects[i].D.Name
 			}
 			prd.Projects[i].D = data
+
 			if err := prd.Projects[i].Save(); err != nil {
 				return 0, err
 			}

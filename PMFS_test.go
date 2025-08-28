@@ -151,7 +151,9 @@ func TestModifyProjectUpdatesTomlAndIndex(t *testing.T) {
 	if prjReload.Name != "prj1-upd" {
 		t.Fatalf("project toml not updated: %s", prjReload.Name)
 	}
+
 	if db2.LLM == nil {
+
 		t.Fatalf("LLM not set to default")
 	}
 }
