@@ -17,6 +17,9 @@ Writes the in-memory database to `index.toml`.
 ## (*ProductType) NewProject
 Adds a new project to a product, writes its `project.toml` and updates the index.
 
+## (*ProductType) ModifyProject
+Updates an existing project and persists its `project.toml` and the index.
+
 ## (*ProductType) Project
 Loads and returns a specific project by ID.
 
@@ -33,10 +36,10 @@ Loads all projects for a given product.
 Loads all projects for all products in the database.
 
 ## (*ProjectType) IngestInputDir
-Scans a directory and ingests each file as an attachment.
+Scans a directory and ingests each file as an attachment using the database's LLM.
 
 ## (*ProjectType) AddAttachmentFromInput
-Moves a single file into the project's attachments and records minimal metadata.
+Moves a single file into the project's attachments, analyzes it with the database's LLM, and records minimal metadata.
 
 
 ## (*Requirement) QualityControlAI

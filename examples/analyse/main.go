@@ -10,11 +10,14 @@ import (
 // This example demonstrates analysing an attachment with a role-specific
 // question. Requires the GEMINI_API_KEY environment variable.
 func main() {
-	PMFS.SetBaseDir(".")
+	db, err := PMFS.LoadSetup(".")
+	if err != nil {
+		log.Fatalf("LoadSetup: %v", err)
+	}
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
-	pass, follow, err := att.Analyse("product_manager", "1", &prj)
+	pass, follow, err := att.Analyse(db, "product_manager", "1", &prj)
 	if err != nil {
 		log.Fatalf("Analyse: %v", err)
 	}
