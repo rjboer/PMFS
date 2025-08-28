@@ -215,10 +215,32 @@ type Attachment struct {
 	Analyzed bool      `json:"analyzed" toml:"analyzed"`
 }
 
-// Analyze processes the attachment with Gemini and appends proposed requirements.
+// Analyze processes the attachment using the default strategy and appends
+// proposed requirements. It is kept for backward compatibility and delegates to
+// GenerateRequirements with an empty strategy.
 func (att *Attachment) Analyze(prj *ProjectType) error {
+	return att.GenerateRequirements(prj, "")
+}
+
+// GenerateRequirements analyzes the attachment using the provided heuristic
+// strategy and appends any discovered requirements to the project's potential
+// requirements slice. An empty strategy falls back to the default LLM-based
+// analysis (currently Gemini).
+func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) error {
+	if strategy == "" {
+		strategy = "gemini"
+	}
+
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
-	reqs, err := llm.DefaultClient.AnalyzeAttachment(full)
+
+	var (
+		reqs []gemini.Requirement
+		err  error
+	)
+	switch strings.ToLower(strategy) {
+	default:
+		reqs, err = llm.DefaultClient.AnalyzeAttachment(full)
+	}
 	if err != nil {
 		return err
 	}
