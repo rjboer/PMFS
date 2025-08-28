@@ -38,6 +38,12 @@ Scans a directory and ingests each file as an attachment.
 ## (*ProjectType) AddAttachmentFromInput
 Moves a single file into the project's attachments and records minimal metadata.
 
+## (*Requirement) QualityControlAI
+Analyses a requirement and evaluates configured gates, storing the results.
+
+## (*ProjectType) QualityControlScanALL
+Runs QualityControlAI for every requirement in the project.
+
 ## FromGemini
 Converts a Gemini requirement into a PMFS requirement by copying its name and description.
 
