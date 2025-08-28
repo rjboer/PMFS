@@ -186,6 +186,36 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 }
 
+func TestAttachmentGenerateRequirements(t *testing.T) {
+	mockReqs := []gemini.Requirement{{Name: "R1", Description: "D1"}}
+	dir := t.TempDir()
+	old := baseDir
+	SetBaseDir(dir)
+	defer SetBaseDir(old)
+
+	prj := &ProjectType{ProductID: 1, ID: 2}
+	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
+	expected := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+
+	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+		if path != expected {
+			t.Fatalf("AnalyzeAttachment called with %s, want %s", path, expected)
+		}
+		return mockReqs, nil
+	}})
+	defer llm.SetClient(orig)
+
+	if err := att.GenerateRequirements(prj, ""); err != nil {
+		t.Fatalf("GenerateRequirements: %v", err)
+	}
+	if !att.Analyzed {
+		t.Fatalf("attachment not marked analyzed")
+	}
+	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+}
+
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
 	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
