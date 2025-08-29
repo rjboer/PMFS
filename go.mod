@@ -2,4 +2,7 @@ module github.com/rjboer/PMFS
 
 go 1.22
 
-require github.com/pelletier/go-toml/v2 v2.2.4
+require (
+    github.com/pelletier/go-toml/v2 v2.2.4
+    github.com/xuri/excelize/v2 v2.8.1
+)
