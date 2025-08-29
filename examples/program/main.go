@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/joho/godotenv"
 	PMFS "github.com/rjboer/PMFS"
 )
 
@@ -146,17 +145,55 @@ func editProject(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	}
 }
 
-// productMenu provides options for managing a single product.
+// productMenu provides options for a selected product.
 func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
-		fmt.Printf("Product %s (ID: %d)\n", p.Name, p.ID)
+		fmt.Printf("Product: %s\n", p.Name)
+		fmt.Println("1) Project operations")
+		fmt.Println("2) Edit product")
+		fmt.Println("3) Back to product list")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			projectOpsMenu(scanner, p)
+		case "2":
+			fmt.Print("New product name: ")
+			if !scanner.Scan() {
+				return
+			}
+			newName := scanner.Text()
+			if newName != "" {
+				p.Name = newName
+				if _, err := PMFS.DB.ModifyProduct(PMFS.ProductData{ID: p.ID, Name: newName}); err != nil {
+					log.Printf("ModifyProduct: %v", err)
+				} else if err := PMFS.DB.Save(); err != nil {
+					log.Printf("Save DB: %v", err)
+				}
+			}
+		case "3", "back":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
+// projectOpsMenu handles project-related operations for a product.
+func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
+	for {
+		fmt.Printf("Product: %s\n", p.Name)
 		fmt.Println("1) List projects")
 		fmt.Println("2) Create project")
 		fmt.Println("3) Edit project")
 		fmt.Println("4) Delete project")
-		fmt.Println("5) Rename product")
-		fmt.Println("6) Open project menu")
-		fmt.Println("7) Back to main menu")
+		fmt.Println("5) Select project")
+		fmt.Println("6) Back to product menu")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -208,23 +245,11 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 				}
 			}
 		case "5":
-			fmt.Print("New product name: ")
-			if !scanner.Scan() {
-				return
-			}
-			newName := scanner.Text()
-			if newName != "" {
-				p.Name = newName
-				if _, err := PMFS.DB.ModifyProduct(PMFS.ProductData{ID: p.ID, Name: newName}); err != nil {
-					log.Printf("ModifyProduct: %v", err)
-				}
-			}
-		case "6":
 			prj := selectProject(scanner, p)
 			if prj != nil {
 				projectMenu(scanner, p, prj)
 			}
-		case "7", "exit":
+		case "6", "back":
 			return
 		default:
 			fmt.Println("Unknown option")
@@ -512,16 +537,43 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 // projectMenu handles project-specific operations for a loaded project.
 func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
-		fmt.Printf("Product %s (ID: %d) - Project %s (ID: %d)\n", p.Name, p.ID, prj.Name, prj.ID)
-		fmt.Println("Choose an option:")
+		fmt.Printf("Product: %s > Project: %s\n", p.Name, prj.Name)
+		fmt.Println("1) Requirements")
+		fmt.Println("2) Attachments")
+		fmt.Println("3) Analysis")
+		fmt.Println("4) Export/Import")
+		fmt.Println("5) Back to product menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			requirementsMenu(scanner, p, prj)
+		case "2":
+			attachmentsMenu(scanner, p, prj)
+		case "3":
+			analysisMenu(scanner, p, prj)
+		case "4":
+			exportImportMenu(scanner, p, &prj)
+		case "5", "back":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
+// requirementsMenu manages requirement operations.
+func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
+	for {
+		fmt.Printf("Product: %s > Project: %s > Requirements\n", p.Name, prj.Name)
 		fmt.Println("1) Add requirement")
-		fmt.Println("2) Export to Excel")
-		fmt.Println("3) Import from Excel")
-		fmt.Println("4) Ingest attachment")
-		fmt.Println("5) Show project overview")
-		fmt.Println("6) Analyse requirement")
-		fmt.Println("7) Suggest related requirements")
-		fmt.Println("8) Back to product menu")
+		fmt.Println("2) Show project overview")
+		fmt.Println("3) Back to project menu")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -533,18 +585,86 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 		case "1":
 			addRequirement(scanner, prj)
 		case "2":
-			exportExcel(scanner, prj)
-		case "3":
-			importExcel(scanner, p, &prj)
-		case "4":
-			ingestAttachment(scanner, prj)
-		case "5":
 			showOverview(prj)
-		case "6":
+		case "3", "back":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
+// attachmentsMenu manages attachment ingestion.
+func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
+	for {
+		fmt.Printf("Product: %s > Project: %s > Attachments\n", p.Name, prj.Name)
+		fmt.Println("1) Ingest attachment")
+		fmt.Println("2) Back to project menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			ingestAttachment(scanner, prj)
+		case "2", "back":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
+// analysisMenu groups requirement analysis operations.
+func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
+	for {
+		fmt.Printf("Product: %s > Project: %s > Analysis\n", p.Name, prj.Name)
+		fmt.Println("1) Analyse requirement")
+		fmt.Println("2) Suggest related requirements")
+		fmt.Println("3) Back to project menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
 			analyseRequirement(scanner, prj)
-		case "7":
+		case "2":
 			suggestRelated(scanner, prj)
-		case "8", "exit":
+		case "3", "back":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
+// exportImportMenu handles Excel export and import.
+func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
+	for {
+		fmt.Printf("Product: %s > Project: %s > Export/Import\n", p.Name, (*prj).Name)
+		fmt.Println("1) Export to Excel")
+		fmt.Println("2) Import from Excel")
+		fmt.Println("3) Back to project menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			exportExcel(scanner, *prj)
+		case "2":
+			importExcel(scanner, p, prj)
+		case "3", "back":
 			return
 		default:
 			fmt.Println("Unknown option")
@@ -558,11 +678,6 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 // environment and supports loading it from a .env file in the working
 // directory.
 func main() {
-	if _, err := os.Stat(".env"); err == nil {
-		if err := godotenv.Load(); err != nil {
-			log.Printf("Error loading .env file: %v", err)
-		}
-	}
 	if _, ok := os.LookupEnv("GEMINI_API_KEY"); !ok {
 		fmt.Fprintln(os.Stderr, "GEMINI_API_KEY environment variable not set")
 		os.Exit(1)
