@@ -39,7 +39,7 @@ func main() {
 	}
 	//attach a pointer to the products
 	p := &db.Products[id-1]
-	prjID, err := p.NewProject(db, PMFS.ProjectData{Name: "Demo Project"})
+	prjID, err := p.NewProject(PMFS.ProjectData{Name: "Demo Project"})
 	if err != nil {
 		log.Fatalf("NewProject: %v", err)
 	}
@@ -53,7 +53,7 @@ func main() {
 		log.Fatalf("Project: %v", err)
 	}
 
-	attDir := filepath.Join(dir, "products", "1", "projects", "1", "attachments", "1")
+	attDir := filepath.Join(path, "products", "1", "projects", "1", "attachments", "1")
 	if err := os.MkdirAll(attDir, 0o755); err != nil {
 		log.Fatalf("mkdir attDir: %v", err)
 	}
@@ -72,13 +72,13 @@ func main() {
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 
-	if err := prj.D.Attachments[0].Analyze(db, prj); err != nil {
+	if err := prj.D.Attachments[0].Analyze(prj); err != nil {
 		log.Fatalf("Attachment Analyze: %v", err)
 	}
 
 	for i := range prj.D.PotentialRequirements {
 		r := &prj.D.PotentialRequirements[i]
-		pass, follow, err := r.Analyse(db, "product_manager", "1")
+		pass, follow, err := r.Analyse("product_manager", "1")
 		if err != nil {
 			log.Fatalf("Requirement Analyse: %v", err)
 		}
@@ -86,7 +86,7 @@ func main() {
 		if follow != "" {
 			fmt.Printf("  Follow-up: %s\n", follow)
 		}
-		if err := r.EvaluateGates(db, []string{"clarity-form-1"}); err != nil {
+		if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
 			log.Fatalf("EvaluateGates: %v", err)
 		}
 		for _, gr := range r.GateResults {

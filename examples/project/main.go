@@ -38,7 +38,7 @@ func main() {
 		log.Fatalf("NewProduct: %v", err)
 	}
 	p := &db.Products[id-1]
-	prjID, err := p.NewProject(db, PMFS.ProjectData{Name: "Demo Project"})
+	prjID, err := p.NewProject(PMFS.ProjectData{Name: "Demo Project"})
 	if err != nil {
 		log.Fatalf("NewProject: %v", err)
 	}
@@ -66,13 +66,13 @@ func main() {
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 
-	if err := prj.D.Attachments[0].Analyze(db, prj); err != nil {
+	if err := prj.D.Attachments[0].Analyze(prj); err != nil {
 		log.Fatalf("Attachment Analyze: %v", err)
 	}
 
 	for i := range prj.D.PotentialRequirements {
 		r := &prj.D.PotentialRequirements[i]
-		pass, follow, err := r.Analyse(db, "product_manager", "1")
+		pass, follow, err := r.Analyse("product_manager", "1")
 		if err != nil {
 			log.Fatalf("Requirement Analyse: %v", err)
 		}
@@ -80,7 +80,7 @@ func main() {
 		if follow != "" {
 			fmt.Printf("  Follow-up: %s\n", follow)
 		}
-		if err := r.EvaluateGates(db, []string{"clarity-form-1"}); err != nil {
+		if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
 			log.Fatalf("EvaluateGates: %v", err)
 		}
 		for _, gr := range r.GateResults {

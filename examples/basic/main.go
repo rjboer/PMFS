@@ -23,7 +23,7 @@ func main() {
 			log.Fatalf("add product: %v", err)
 		}
 		p := &db.Products[id-1]
-		if _, err := p.NewProject(db, PMFS.ProjectData{Name: "Example Project"}); err != nil {
+		if _, err := p.NewProject(PMFS.ProjectData{Name: "Example Project"}); err != nil {
 			log.Fatalf("add project: %v", err)
 		}
 	}

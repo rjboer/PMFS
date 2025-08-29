@@ -89,7 +89,7 @@ func TestNewProjectWritesTomlAndUpdatesIndex(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -128,11 +128,11 @@ func TestModifyProjectUpdatesTomlAndIndex(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	id, err := prd.NewProject(db, ProjectData{Name: "prj1"})
+	id, err := prd.NewProject(ProjectData{Name: "prj1"})
 	if err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
-	if _, err := prd.ModifyProject(db, id, ProjectData{Name: "prj1-upd"}); err != nil {
+	if _, err := prd.ModifyProject(id, ProjectData{Name: "prj1-upd"}); err != nil {
 		t.Fatalf("ModifyProject: %v", err)
 	}
 
@@ -182,9 +182,8 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	}
 	prd := &db.Products[0]
 
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
-
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -201,7 +200,7 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -233,16 +232,11 @@ func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 }
 
 func TestAttachmentGenerateRequirements(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	mockReqs := []gemini.Requirement{{Name: "R1", Description: "D1"}}
 	dir := t.TempDir()
-	old := baseDir
-	SetBaseDir(dir)
-	defer SetBaseDir(old)
 
-	prj := &ProjectType{ProductID: 1, ID: 2}
-	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
-	expected := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
-
+	var expected string
 	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
 		if path != expected {
 			t.Fatalf("AnalyzeAttachment called with %s, want %s", path, expected)
@@ -251,15 +245,22 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	}})
 	defer llm.SetClient(orig)
 
-	db := &Database{LLM: llm.DefaultClient}
-	if err := att.GenerateRequirements(db, prj, ""); err != nil {
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+
+	prj := &ProjectType{ProductID: 1, ID: 2}
+	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
+	expected = filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+
+	if err := att.GenerateRequirements(prj, ""); err != nil {
 		t.Fatalf("GenerateRequirements: %v", err)
 	}
 	if !att.Analyzed {
 		t.Fatalf("attachment not marked analyzed")
 	}
 	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
-		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
 	}
 }
 
@@ -286,9 +287,8 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 	prd := &db.Products[0]
 
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
-
 	}
 	if err := db.Save(); err != nil {
 		t.Fatalf("Save: %v", err)
@@ -305,7 +305,7 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -364,7 +364,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -384,7 +384,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	att, err := prj.AddAttachmentFromInput(db, inputDir, fname)
+	att, err := prj.AddAttachmentFromInput(inputDir, fname)
 	if err != nil {
 		t.Fatalf("AddAttachmentFromInput: %v", err)
 	}
@@ -441,7 +441,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -461,7 +461,7 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 		}
 	}
 
-	atts, err := prj.IngestInputDir(db, inputDir)
+	atts, err := prj.IngestInputDir(inputDir)
 	if err != nil {
 		t.Fatalf("IngestInputDir: %v", err)
 	}
@@ -520,7 +520,7 @@ func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	prd := &db.Products[0]
-	if _, err := prd.NewProject(db, ProjectData{Name: "prj1"}); err != nil {
+	if _, err := prd.NewProject(ProjectData{Name: "prj1"}); err != nil {
 		t.Fatalf("NewProject: %v", err)
 	}
 	if err := db.Save(); err != nil {
@@ -541,7 +541,7 @@ func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
 		}
 	}
 
-	atts, err := prj.Attachments(db).AddFromInputFolder()
+	atts, err := prj.Attachments().AddFromInputFolder()
 	if err != nil {
 		t.Fatalf("AddFromInputFolder: %v", err)
 	}

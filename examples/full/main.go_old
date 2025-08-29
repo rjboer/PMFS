@@ -49,7 +49,7 @@ func main() {
 	}
 
 	// Store the requirements in a project structure.
-	prj := PMFS.ProjectType{LLM: llm.DefaultClient}
+	prj := PMFS.ProjectType{}
 	for _, r := range reqs {
 		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, PMFS.FromGemini(r))
 	}
@@ -62,14 +62,14 @@ func main() {
 		fmt.Printf("Requirement %d: %s - %s\n", i+1, r.Name, r.Description)
 		id := strconv.Itoa(i + 1)
 		for _, role := range roles {
-			pass, follow, _ := r.Analyse(&prj, role, id)
+			pass, follow, _ := r.Analyse(role, id)
 			fmt.Printf("  %s agrees? %v\n", role, pass)
 			if follow != "" {
 				fmt.Printf("    Follow-up: %s\n", follow)
 			}
 		}
 
-		_ = r.EvaluateGates(&prj, []string{"clarity-form-1", "duplicate-1"})
+		_ = r.EvaluateGates([]string{"clarity-form-1", "duplicate-1"})
 		for _, gr := range r.GateResults {
 			fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
 		}

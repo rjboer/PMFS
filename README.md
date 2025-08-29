@@ -173,22 +173,24 @@ go run ./examples/full
 
 ## Available Functions
 
-- `LoadSetup(path string) (*Database, error)`
+- `LoadSetup(path string) (*Database, error)` – initializes or creates the database at `path` and assigns it to the package-level `DB` variable
 
 - `(*Database) NewProduct(data ProductData) (int, error)`
 - `(*Database) ModifyProduct(data ProductData) (int, error)`
 - `(*Database) Save() error`
-- `(*ProductType) NewProject(db *Database, data ProjectData) (int, error)`
-- `(*ProductType) ModifyProject(db *Database, id int, data ProjectData) (int, error)`
+- `(*ProductType) NewProject(data ProjectData) (int, error)`
+- `(*ProductType) ModifyProject(id int, data ProjectData) (int, error)`
 - `(*ProductType) Project(id int) (*ProjectType, error)`
 - `(*ProjectType) Save() error`
 - `(*ProjectType) Load() error`
 
 - `(*ProductType) LoadProjects() error`
 - `(*Database) LoadAllProjects() error`
-- `(*ProjectType) IngestInputDir(db *Database, inputDir string) ([]Attachment, error)`
-- `(*ProjectType) AddAttachmentFromInput(db *Database, inputDir, filename string) (Attachment, error)`
-- `(*ProjectType) Attachments(db *Database) AttachmentManager`
+- `(*ProjectType) IngestInputDir(inputDir string) ([]Attachment, error)`
+- `(*ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error)`
+- `(*ProjectType) AddAttachmentFromText(text string) (Attachment, error)`
+- `(*ProjectType) AddRequirement(r Requirement) error`
+- `(*ProjectType) Attachments() AttachmentManager`
 - `(*AttachmentManager) AddFromInputFolder() ([]Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`
 
