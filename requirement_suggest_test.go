@@ -48,3 +48,24 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 		t.Fatalf("expected error for malformed response")
 	}
 }
+
+func TestRequirementSuggestOthersCodeFence(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	r := Requirement{Description: "System shall X"}
+	mockResp := "Sure!\n```json\n[{\"name\":\"R2\",\"description\":\"Desc2\"},{\"name\":\"R3\",\"description\":\"Desc3\"}]\n```"
+	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		return mockResp, nil
+	}}
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	reqs, err := r.SuggestOthers()
+	if err != nil {
+		t.Fatalf("SuggestOthers: %v", err)
+	}
+	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
+		t.Fatalf("unexpected reqs: %#v", reqs)
+	}
+}
