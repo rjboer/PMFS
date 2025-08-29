@@ -1,5 +1,5 @@
-.env
-.exe
-.toml
-.xlsx
-.key
+*.env
+*.exe
+*.toml
+*.xlsx
+*.key
