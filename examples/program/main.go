@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/joho/godotenv"
 	PMFS "github.com/rjboer/PMFS"
 )
 
@@ -291,9 +292,20 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 
 // This example demonstrates basic project interaction via a simple command
 // loop. It allows adding requirements, importing/exporting to Excel and viewing
-// the project's current state. Requires the GEMINI_API_KEY environment
-// variable.
+// the project's current state. The program reads GEMINI_API_KEY from the
+// environment and supports loading it from a .env file in the working
+// directory.
 func main() {
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			log.Printf("Error loading .env file: %v", err)
+		}
+	}
+	if _, ok := os.LookupEnv("GEMINI_API_KEY"); !ok {
+		fmt.Fprintln(os.Stderr, "GEMINI_API_KEY environment variable not set")
+		os.Exit(1)
+	}
+
 	path := "./RoelofCompany"
 	if err := os.MkdirAll(path, 0o777); err != nil {
 		log.Fatal(err)
