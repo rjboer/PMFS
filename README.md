@@ -128,6 +128,17 @@ func main() {
 }
 ```
 
+## Excel Import/Export
+
+PMFS can export a project's data to an Excel file and import it back. These features rely on [`github.com/xuri/excelize/v2`](https://github.com/xuri/excelize/v2).
+
+```go
+project.ExportExcel("myproj.xlsx")
+data, _ := PMFS.ImportProjectExcel("myproj.xlsx")
+```
+
+Attachments are not included in Excel exports yet.
+
 A runnable sample program lives in `examples/basic` and can be run with:
 
 ```bash
