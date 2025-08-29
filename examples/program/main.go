@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	PMFS "github.com/rjboer/PMFS"
@@ -67,6 +68,168 @@ func selectProduct(scanner *bufio.Scanner) *PMFS.ProductType {
 	}
 	fmt.Println("Product not found")
 	return nil
+}
+
+// selectProject prompts for a project ID and loads it from disk.
+func selectProject(scanner *bufio.Scanner, p *PMFS.ProductType) *PMFS.ProjectType {
+	if len(p.Projects) == 0 {
+		fmt.Println("No projects available.")
+		return nil
+	}
+	fmt.Println("Projects:")
+	for _, pr := range p.Projects {
+		fmt.Printf("%d: %s\n", pr.ID, pr.Name)
+	}
+	fmt.Print("Select project ID: ")
+	if !scanner.Scan() {
+		return nil
+	}
+	id, err := strconv.Atoi(scanner.Text())
+	if err != nil {
+		fmt.Println("Invalid selection")
+		return nil
+	}
+	prj, err := p.Project(id)
+	if err != nil {
+		fmt.Printf("Load project: %v\n", err)
+		return nil
+	}
+	return prj
+}
+
+// editProject interactively updates project fields and persists them.
+func editProject(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
+	fmt.Printf("Name [%s]: ", prj.D.Name)
+	if scanner.Scan() {
+		if txt := scanner.Text(); txt != "" {
+			prj.Name = txt
+			prj.D.Name = txt
+		}
+	}
+	fmt.Printf("Scope [%s]: ", prj.D.Scope)
+	if scanner.Scan() {
+		if txt := scanner.Text(); txt != "" {
+			prj.D.Scope = txt
+		}
+	}
+	fmt.Printf("Priority [%s]: ", prj.D.Priority)
+	if scanner.Scan() {
+		if txt := scanner.Text(); txt != "" {
+			prj.D.Priority = txt
+		}
+	}
+	fmt.Printf("Start date [%s] (YYYY-MM-DD): ", prj.D.StartDate.Format("2006-01-02"))
+	if scanner.Scan() {
+		if txt := scanner.Text(); txt != "" {
+			if t, err := time.Parse("2006-01-02", txt); err == nil {
+				prj.D.StartDate = t
+			} else {
+				fmt.Println("Invalid date format")
+			}
+		}
+	}
+	fmt.Printf("End date [%s] (YYYY-MM-DD): ", prj.D.EndDate.Format("2006-01-02"))
+	if scanner.Scan() {
+		if txt := scanner.Text(); txt != "" {
+			if t, err := time.Parse("2006-01-02", txt); err == nil {
+				prj.D.EndDate = t
+			} else {
+				fmt.Println("Invalid date format")
+			}
+		}
+	}
+	if err := prj.Save(); err != nil {
+		log.Printf("Save project: %v", err)
+	}
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
+	}
+}
+
+// productMenu provides options for managing a single product.
+func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
+	for {
+		fmt.Printf("Product %s (ID: %d)\n", p.Name, p.ID)
+		fmt.Println("1) List projects")
+		fmt.Println("2) Create project")
+		fmt.Println("3) Edit project")
+		fmt.Println("4) Delete project")
+		fmt.Println("5) Rename product")
+		fmt.Println("6) Open project menu")
+		fmt.Println("7) Back to main menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			if len(p.Projects) == 0 {
+				fmt.Println("No projects available.")
+			} else {
+				for _, pr := range p.Projects {
+					fmt.Printf("%d: %s\n", pr.ID, pr.Name)
+				}
+			}
+		case "2":
+			fmt.Print("Project name: ")
+			if !scanner.Scan() {
+				return
+			}
+			name := scanner.Text()
+			if _, err := p.NewProject(PMFS.ProjectData{Name: name}); err != nil {
+				log.Printf("NewProject: %v", err)
+			} else if err := PMFS.DB.Save(); err != nil {
+				log.Printf("Save DB: %v", err)
+			}
+		case "3":
+			prj := selectProject(scanner, p)
+			if prj != nil {
+				editProject(scanner, prj)
+			}
+		case "4":
+			prj := selectProject(scanner, p)
+			if prj != nil {
+				prjDir := filepath.Join(PMFS.DB.BaseDir, "products", strconv.Itoa(p.ID), "projects", strconv.Itoa(prj.ID))
+				if err := os.RemoveAll(prjDir); err != nil {
+					log.Printf("Remove project: %v", err)
+				} else {
+					for i := range p.Projects {
+						if p.Projects[i].ID == prj.ID {
+							p.Projects = append(p.Projects[:i], p.Projects[i+1:]...)
+							break
+						}
+					}
+					if err := PMFS.DB.Save(); err != nil {
+						log.Printf("Save DB: %v", err)
+					}
+				}
+			}
+		case "5":
+			fmt.Print("New product name: ")
+			if !scanner.Scan() {
+				return
+			}
+			newName := scanner.Text()
+			if newName != "" {
+				p.Name = newName
+				if _, err := PMFS.DB.ModifyProduct(PMFS.ProductData{ID: p.ID, Name: newName}); err != nil {
+					log.Printf("ModifyProduct: %v", err)
+				}
+			}
+		case "6":
+			prj := selectProject(scanner, p)
+			if prj != nil {
+				projectMenu(scanner, p, prj)
+			}
+		case "7", "exit":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
 }
 
 // addRequirement prompts the user for requirement details and appends it to
@@ -346,52 +509,8 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	}
 }
 
-// projectMenu handles project-specific operations for a selected product.
-// It ensures a project is available, then runs the interactive menu.
-func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
-	var prj *PMFS.ProjectType
-	if len(p.Projects) == 0 {
-		fmt.Print("No projects found. Enter name for new project: ")
-		if !scanner.Scan() {
-			return
-		}
-		name := scanner.Text()
-		id, err := p.NewProject(PMFS.ProjectData{Name: name})
-		if err != nil {
-			log.Printf("NewProject: %v", err)
-			return
-		}
-		if err := PMFS.DB.Save(); err != nil {
-			log.Printf("Save DB: %v", err)
-		}
-		np, err := p.Project(id)
-		if err != nil {
-			log.Printf("Load project: %v", err)
-			return
-		}
-		prj = np
-	} else {
-		fmt.Println("Projects:")
-		for _, pr := range p.Projects {
-			fmt.Printf("%d: %s\n", pr.ID, pr.Name)
-		}
-		fmt.Print("Select project ID: ")
-		if !scanner.Scan() {
-			return
-		}
-		id, err := strconv.Atoi(scanner.Text())
-		if err != nil {
-			fmt.Println("Invalid selection")
-			return
-		}
-		np, err := p.Project(id)
-		if err != nil {
-			fmt.Printf("Load project: %v\n", err)
-			return
-		}
-		prj = np
-	}
-
+// projectMenu handles project-specific operations for a loaded project.
+func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
 		fmt.Printf("Product %s (ID: %d) - Project %s (ID: %d)\n", p.Name, p.ID, prj.Name, prj.ID)
 		fmt.Println("Choose an option:")
@@ -478,7 +597,7 @@ func main() {
 		case "2":
 			p := selectProduct(scanner)
 			if p != nil {
-				projectMenu(scanner, p)
+				productMenu(scanner, p)
 			}
 		case "3":
 			createProduct(scanner)
