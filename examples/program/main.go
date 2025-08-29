@@ -7,10 +7,38 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	PMFS "github.com/rjboer/PMFS"
 )
+
+// loadEnv loads environment variables from a .env file if it exists.
+func loadEnv() {
+	f, err := os.Open(".env")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		line := strings.TrimSpace(s.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
+		os.Setenv(key, val)
+	}
+	if err := s.Err(); err != nil {
+		log.Printf("Error reading .env: %v", err)
+	}
+}
 
 // listProducts prints all products in the database with their IDs.
 func listProducts() {
@@ -675,9 +703,10 @@ func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Pr
 // This example demonstrates basic project interaction via a simple command
 // loop. It allows adding requirements, importing/exporting to Excel and viewing
 // the project's current state. The program reads GEMINI_API_KEY from the
-// environment and supports loading it from a .env file in the working
+// environment and, if present, loads it from a .env file in the working
 // directory.
 func main() {
+	loadEnv()
 	if _, ok := os.LookupEnv("GEMINI_API_KEY"); !ok {
 		fmt.Fprintln(os.Stderr, "GEMINI_API_KEY environment variable not set")
 		os.Exit(1)

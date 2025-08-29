@@ -5,8 +5,8 @@ go 1.23.0
 toolchain go1.23.6
 
 require (
-	github.com/pelletier/go-toml/v2 v2.2.4
-	github.com/xuri/excelize/v2 v2.9.1
+        github.com/pelletier/go-toml/v2 v2.2.4
+        github.com/xuri/excelize/v2 v2.9.1
 )
 
 require (
