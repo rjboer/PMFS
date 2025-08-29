@@ -73,6 +73,9 @@ type Database struct {
 	LLM      llm.Client    `toml:"-" json:"-"`
 }
 
+// DB is the package-wide database instance used by helper functions.
+var DB *Database
+
 // LoadSetup initialises the database at the provided path. It sets the
 // PMFS_BASEDIR environment variable, prepares the on-disk layout and loads the
 // index into memory.
@@ -93,6 +96,7 @@ func LoadSetup(path string) (*Database, error) {
 	}
 	db.BaseDir = path
 	db.LLM = llm.DefaultClient
+	DB = db
 
 	return db, nil
 }
@@ -178,14 +182,14 @@ func FromGemini(req gemini.Requirement) Requirement {
 // Analyse sends the requirement description to the provided role/question pair
 
 // using the database's configured LLM and returns the result.
-func (r *Requirement) Analyse(db *Database, role, questionID string) (bool, string, error) {
-	return interact.RunQuestion(db.LLM, role, questionID, r.Description)
+func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
+	return interact.RunQuestion(DB.LLM, role, questionID, r.Description)
 }
 
 // EvaluateGates runs the specified gates against the requirement description
 // using the database's configured LLM and stores the results on the requirement.
-func (r *Requirement) EvaluateGates(db *Database, gateIDs []string) error {
-	res, err := gates.Evaluate(db.LLM, gateIDs, r.Description)
+func (r *Requirement) EvaluateGates(gateIDs []string) error {
+	res, err := gates.Evaluate(DB.LLM, gateIDs, r.Description)
 
 	if err != nil {
 		return err
@@ -196,12 +200,12 @@ func (r *Requirement) EvaluateGates(db *Database, gateIDs []string) error {
 
 // QualityControlAI runs Analyse and EvaluateGates on the requirement.
 // It returns the result of Analyse and stores gate evaluation results on the requirement.
-func (r *Requirement) QualityControlAI(db *Database, role, questionID string, gateIDs []string) (bool, string, error) {
-	pass, ans, err := r.Analyse(db, role, questionID)
+func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string) (bool, string, error) {
+	pass, ans, err := r.Analyse(role, questionID)
 	if err != nil {
 		return pass, ans, err
 	}
-	if err := r.EvaluateGates(db, gateIDs); err != nil {
+	if err := r.EvaluateGates(gateIDs); err != nil {
 		return pass, ans, err
 	}
 	return pass, ans, nil
@@ -211,10 +215,10 @@ func (r *Requirement) QualityControlAI(db *Database, role, questionID string, ga
 
 // this requirement's description and returns them.
 
-func (r *Requirement) SuggestOthers(db *Database) ([]Requirement, error) {
+func (r *Requirement) SuggestOthers() ([]Requirement, error) {
 
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
-	resp, err := db.LLM.Ask(prompt)
+	resp, err := DB.LLM.Ask(prompt)
 	if err != nil {
 		return nil, err
 	}
@@ -238,22 +242,22 @@ type Attachment struct {
 // Analyze processes the attachment using the default strategy and appends
 // proposed requirements. It is kept for backward compatibility and delegates to
 // GenerateRequirements with an empty strategy.
-func (att *Attachment) Analyze(db *Database, prj *ProjectType) error {
-	return att.GenerateRequirements(db, prj, "")
+func (att *Attachment) Analyze(prj *ProjectType) error {
+	return att.GenerateRequirements(prj, "")
 }
 
 // GenerateRequirements analyzes the attachment using the provided heuristic
 // strategy and appends any discovered requirements to the project's potential
 // requirements slice. An empty strategy falls back to the default LLM-based
 // analysis (currently Gemini).
-func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, strategy string) error {
+func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) error {
 	if strategy == "" {
 		strategy = "gemini"
 	}
 
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 
-	reqs, err := db.LLM.AnalyzeAttachment(full)
+	reqs, err := DB.LLM.AnalyzeAttachment(full)
 
 	if err != nil {
 		return err
@@ -269,7 +273,7 @@ func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, stra
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
 
-func (att *Attachment) Analyse(db *Database, role, questionID string, prj *ProjectType) (bool, string, error) {
+func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
 
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
@@ -284,7 +288,7 @@ func (att *Attachment) Analyse(db *Database, role, questionID string, prj *Proje
 		}
 		content = string(b)
 	} else {
-		reqs, err := db.LLM.AnalyzeAttachment(full)
+		reqs, err := DB.LLM.AnalyzeAttachment(full)
 		if err != nil {
 			return false, "", err
 		}
@@ -297,7 +301,7 @@ func (att *Attachment) Analyse(db *Database, role, questionID string, prj *Proje
 		}
 		content = sb.String()
 	}
-	return interact.RunQuestion(db.LLM, role, questionID, content)
+	return interact.RunQuestion(DB.LLM, role, questionID, content)
 }
 
 // ChangeLog records a change made to a requirement.
@@ -407,7 +411,7 @@ func (db *Database) ModifyProduct(data ProductData) (int, error) {
 
 // NewProject appends a project to the product, persists it to project.toml and
 // updates the database index. The new project ID is len(product.Projects)+1.
-func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) {
+func (prd *ProductType) NewProject(data ProjectData) (int, error) {
 	// basic validation
 	if strings.TrimSpace(data.Name) == "" {
 		return 0, errors.New("project name cannot be empty")
@@ -433,14 +437,14 @@ func (prd *ProductType) NewProject(db *Database, data ProjectData) (int, error) 
 	}
 
 	prd.Projects = append(prd.Projects, prj)
-	if err := db.Save(); err != nil {
+	if err := DB.Save(); err != nil {
 		return 0, err
 	}
 	return newPrjID, nil
 }
 
 // ModifyProject updates a project's fields and persists both the project and index.
-func (prd *ProductType) ModifyProject(db *Database, id int, data ProjectData) (int, error) {
+func (prd *ProductType) ModifyProject(id int, data ProjectData) (int, error) {
 	for i := range prd.Projects {
 		if prd.Projects[i].ID == id {
 			if data.Name != "" {
@@ -454,7 +458,7 @@ func (prd *ProductType) ModifyProject(db *Database, id int, data ProjectData) (i
 			if err := prd.Projects[i].Save(); err != nil {
 				return 0, err
 			}
-			if err := db.Save(); err != nil {
+			if err := DB.Save(); err != nil {
 				return 0, err
 			}
 			return id, nil
@@ -677,7 +681,7 @@ func detectMimeType(path string) string {
 }
 
 // IngestInputDir scans inputDir and ingests all regular files into attachments/.
-func (prj *ProjectType) IngestInputDir(db *Database, inputDir string) ([]Attachment, error) {
+func (prj *ProjectType) IngestInputDir(inputDir string) ([]Attachment, error) {
 	entries, err := os.ReadDir(inputDir)
 	if err != nil {
 		return nil, err
@@ -699,7 +703,7 @@ func (prj *ProjectType) IngestInputDir(db *Database, inputDir string) ([]Attachm
 
 	ingested := make([]Attachment, 0, len(names))
 	for _, n := range names {
-		att, err := prj.AddAttachmentFromInput(db, inputDir, n)
+		att, err := prj.AddAttachmentFromInput(inputDir, n)
 		if err != nil {
 			return ingested, err // fail fast; or change to continue if you prefer
 		}
@@ -710,7 +714,7 @@ func (prj *ProjectType) IngestInputDir(db *Database, inputDir string) ([]Attachm
 
 // AddAttachmentFromInput moves a single file from inputDir into this project's
 // attachments/<id>/ folder, records minimal metadata, and saves the project.
-func (prj *ProjectType) AddAttachmentFromInput(db *Database, inputDir, filename string) (Attachment, error) {
+func (prj *ProjectType) AddAttachmentFromInput(inputDir, filename string) (Attachment, error) {
 	inputPath := filepath.Join(inputDir, filename)
 	if ok, err := fileExists(inputPath); err != nil {
 		return Attachment{}, err
@@ -762,7 +766,7 @@ func (prj *ProjectType) AddAttachmentFromInput(db *Database, inputDir, filename 
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 	ptr := &prj.D.Attachments[len(prj.D.Attachments)-1]
-	if err := ptr.Analyze(db, prj); err != nil {
+	if err := ptr.Analyze(prj); err != nil {
 		return *ptr, err
 	}
 
@@ -773,10 +777,63 @@ func (prj *ProjectType) AddAttachmentFromInput(db *Database, inputDir, filename 
 	return *ptr, nil
 }
 
+// AddAttachmentFromText creates a new attachment from the provided text
+// content and analyzes it using the configured LLM.
+func (prj *ProjectType) AddAttachmentFromText(text string) (Attachment, error) {
+	attBaseDir := attachmentDir(prj.ProductID, prj.ID)
+	if err := os.MkdirAll(attBaseDir, 0o755); err != nil {
+		return Attachment{}, fmt.Errorf("mkdir attachments: %w", err)
+	}
+
+	ids, err := numericSubdirs(attBaseDir)
+	if err != nil {
+		return Attachment{}, err
+	}
+	nextID := 1
+	if len(ids) > 0 {
+		nextID = ids[len(ids)-1] + 1
+	}
+
+	attDir := filepath.Join(attBaseDir, strconv.Itoa(nextID))
+	if err := os.MkdirAll(attDir, 0o755); err != nil {
+		return Attachment{}, fmt.Errorf("mkdir attachment dir: %w", err)
+	}
+	filename := "note.txt"
+	dstPath := filepath.Join(attDir, filename)
+	if err := os.WriteFile(dstPath, []byte(text), 0o644); err != nil {
+		return Attachment{}, err
+	}
+
+	rel := filepath.ToSlash(filepath.Join("attachments", strconv.Itoa(nextID), filename))
+	att := Attachment{
+		ID:       nextID,
+		Filename: filename,
+		RelPath:  rel,
+		Mimetype: "text/plain",
+		AddedAt:  time.Now(),
+		Analyzed: false,
+	}
+	prj.D.Attachments = append(prj.D.Attachments, att)
+	ptr := &prj.D.Attachments[len(prj.D.Attachments)-1]
+	if err := ptr.Analyze(prj); err != nil {
+		return *ptr, err
+	}
+	if err := prj.Save(); err != nil {
+		return *ptr, err
+	}
+	return *ptr, nil
+}
+
+// AddRequirement appends a requirement to the project and persists it.
+func (prj *ProjectType) AddRequirement(r Requirement) error {
+	prj.D.Requirements = append(prj.D.Requirements, r)
+	return prj.Save()
+}
+
 // QualityControlScanALL runs QualityControlAI on every requirement in the project.
-func (prj *ProjectType) QualityControlScanALL(db *Database, role, questionID string, gateIDs []string) error {
+func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs []string) error {
 	for i := range prj.D.Requirements {
-		if _, _, err := prj.D.Requirements[i].QualityControlAI(db, role, questionID, gateIDs); err != nil {
+		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil {
 			return err
 		}
 	}

@@ -10,13 +10,13 @@ import (
 // This example demonstrates evaluating a requirement against a gate. Requires
 // the GEMINI_API_KEY environment variable.
 func main() {
-	db, err := PMFS.LoadSetup(".")
+	_, err := PMFS.LoadSetup(".")
 	if err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
 	req := PMFS.Requirement{Description: "The system shall be user friendly."}
 
-	if err := req.EvaluateGates(db, []string{"clarity-form-1"}); err != nil {
+	if err := req.EvaluateGates([]string{"clarity-form-1"}); err != nil {
 
 		log.Fatalf("EvaluateGates: %v", err)
 	}

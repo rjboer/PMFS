@@ -9,6 +9,7 @@ import (
 )
 
 func TestRequirementSuggestOthers(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	r := Requirement{Description: "System shall X"}
 	mockResp := `[{"name":"R2","description":"Desc2"},{"name":"R3","description":"Desc3"}]`
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
@@ -18,8 +19,12 @@ func TestRequirementSuggestOthers(t *testing.T) {
 		}
 		return mockResp, nil
 	}}
-	db := &Database{LLM: client}
-	reqs, err := r.SuggestOthers(db)
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	reqs, err := r.SuggestOthers()
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
@@ -29,12 +34,17 @@ func TestRequirementSuggestOthers(t *testing.T) {
 }
 
 func TestRequirementSuggestOthersMalformed(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	r := Requirement{Description: "System shall X"}
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		return "not json", nil
 	}}
-	db := &Database{LLM: client}
-	if _, err := r.SuggestOthers(db); err == nil {
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	if _, err := r.SuggestOthers(); err == nil {
 		t.Fatalf("expected error for malformed response")
 	}
 }
