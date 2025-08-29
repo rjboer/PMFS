@@ -187,7 +187,7 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 // projectOpsMenu handles project-related operations for a product.
 func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
-		fmt.Printf("Product: %s\n", p.Name)
+		fmt.Printf("Product: %s > Project operations\n", p.Name)
 		fmt.Println("1) List projects")
 		fmt.Println("2) Create project")
 		fmt.Println("3) Edit project")
