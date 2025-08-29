@@ -222,11 +222,63 @@ func (r *Requirement) SuggestOthers() ([]Requirement, error) {
 	if err != nil {
 		return nil, err
 	}
+	raw, err := parseLLMJSON(resp)
+	if err != nil {
+		return nil, err
+	}
 	var reqs []Requirement
-	if err := json.Unmarshal([]byte(resp), &reqs); err != nil {
+	if err := json.Unmarshal(raw, &reqs); err != nil {
 		return nil, err
 	}
 	return reqs, nil
+}
+
+// parseLLMJSON extracts the first valid JSON array from the LLM response.
+// It supports Markdown fenced code blocks and returns an error if no JSON
+// array can be located.
+func parseLLMJSON(resp string) ([]byte, error) {
+	resp = strings.TrimSpace(resp)
+
+	if idx := strings.Index(resp, "```"); idx != -1 {
+		resp = resp[idx+3:]
+		if nl := strings.IndexByte(resp, '\n'); nl != -1 {
+			resp = resp[nl+1:]
+		}
+		if end := strings.Index(resp, "```"); end != -1 {
+			resp = resp[:end]
+		}
+		resp = strings.TrimSpace(resp)
+	}
+
+	if json.Valid([]byte(resp)) {
+		return []byte(resp), nil
+	}
+
+	start := strings.Index(resp, "[")
+	for start != -1 {
+		depth := 0
+		for i := start; i < len(resp); i++ {
+			switch resp[i] {
+			case '[':
+				depth++
+			case ']':
+				depth--
+				if depth == 0 {
+					candidate := resp[start : i+1]
+					if json.Valid([]byte(candidate)) {
+						return []byte(candidate), nil
+					}
+					break
+				}
+			}
+		}
+		next := strings.Index(resp[start+1:], "[")
+		if next == -1 {
+			break
+		}
+		start += next + 1
+	}
+	return nil, errors.New("no valid JSON array found in LLM response")
 }
 
 // Attachment is minimal metadata about an ingested file.
