@@ -7,11 +7,67 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/joho/godotenv"
 	PMFS "github.com/rjboer/PMFS"
 )
+
+// listProducts prints all products in the database with their IDs.
+func listProducts() {
+	if len(PMFS.DB.Products) == 0 {
+		fmt.Println("No products available.")
+		return
+	}
+	fmt.Println("Products:")
+	for _, p := range PMFS.DB.Products {
+		fmt.Printf("%d: %s\n", p.ID, p.Name)
+	}
+}
+
+// createProduct asks the user for a name, creates the product and saves the DB.
+func createProduct(scanner *bufio.Scanner) *PMFS.ProductType {
+	fmt.Print("Product name: ")
+	if !scanner.Scan() {
+		return nil
+	}
+	name := scanner.Text()
+	id, err := PMFS.DB.NewProduct(PMFS.ProductData{Name: name})
+	if err != nil {
+		log.Printf("NewProduct: %v", err)
+		return nil
+	}
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
+	}
+	p := &PMFS.DB.Products[id-1]
+	fmt.Printf("Created product %s (ID: %d)\n", p.Name, p.ID)
+	return p
+}
+
+// selectProduct prompts for a product ID and returns the matching product.
+func selectProduct(scanner *bufio.Scanner) *PMFS.ProductType {
+	if len(PMFS.DB.Products) == 0 {
+		fmt.Println("No products available.")
+		return nil
+	}
+	listProducts()
+	fmt.Print("Select product ID: ")
+	if !scanner.Scan() {
+		return nil
+	}
+	id, err := strconv.Atoi(scanner.Text())
+	if err != nil {
+		fmt.Println("Invalid ID")
+		return nil
+	}
+	for i := range PMFS.DB.Products {
+		if PMFS.DB.Products[i].ID == id {
+			return &PMFS.DB.Products[i]
+		}
+	}
+	fmt.Println("Product not found")
+	return nil
+}
 
 // addRequirement prompts the user for requirement details and appends it to
 // the project.
@@ -290,6 +346,93 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	}
 }
 
+// projectMenu handles project-specific operations for a selected product.
+// It ensures a project is available, then runs the interactive menu.
+func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
+	var prj *PMFS.ProjectType
+	if len(p.Projects) == 0 {
+		fmt.Print("No projects found. Enter name for new project: ")
+		if !scanner.Scan() {
+			return
+		}
+		name := scanner.Text()
+		id, err := p.NewProject(PMFS.ProjectData{Name: name})
+		if err != nil {
+			log.Printf("NewProject: %v", err)
+			return
+		}
+		if err := PMFS.DB.Save(); err != nil {
+			log.Printf("Save DB: %v", err)
+		}
+		np, err := p.Project(id)
+		if err != nil {
+			log.Printf("Load project: %v", err)
+			return
+		}
+		prj = np
+	} else {
+		fmt.Println("Projects:")
+		for _, pr := range p.Projects {
+			fmt.Printf("%d: %s\n", pr.ID, pr.Name)
+		}
+		fmt.Print("Select project ID: ")
+		if !scanner.Scan() {
+			return
+		}
+		id, err := strconv.Atoi(scanner.Text())
+		if err != nil {
+			fmt.Println("Invalid selection")
+			return
+		}
+		np, err := p.Project(id)
+		if err != nil {
+			fmt.Printf("Load project: %v\n", err)
+			return
+		}
+		prj = np
+	}
+
+	for {
+		fmt.Printf("Product %s (ID: %d) - Project %s (ID: %d)\n", p.Name, p.ID, prj.Name, prj.ID)
+		fmt.Println("Choose an option:")
+		fmt.Println("1) Add requirement")
+		fmt.Println("2) Export to Excel")
+		fmt.Println("3) Import from Excel")
+		fmt.Println("4) Ingest attachment")
+		fmt.Println("5) Show project overview")
+		fmt.Println("6) Analyse requirement")
+		fmt.Println("7) Suggest related requirements")
+		fmt.Println("8) Back to product menu")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
+			return
+		}
+		choice := scanner.Text()
+
+		switch choice {
+		case "1":
+			addRequirement(scanner, prj)
+		case "2":
+			exportExcel(scanner, prj)
+		case "3":
+			importExcel(scanner, p, &prj)
+		case "4":
+			ingestAttachment(scanner, prj)
+		case "5":
+			showOverview(prj)
+		case "6":
+			analyseRequirement(scanner, prj)
+		case "7":
+			suggestRelated(scanner, prj)
+		case "8", "exit":
+			return
+		default:
+			fmt.Println("Unknown option")
+		}
+	}
+}
+
 // This example demonstrates basic project interaction via a simple command
 // loop. It allows adding requirements, importing/exporting to Excel and viewing
 // the project's current state. The program reads GEMINI_API_KEY from the
@@ -311,41 +454,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, err := PMFS.LoadSetup(path)
-	if err != nil {
+	if _, err := PMFS.LoadSetup(path); err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
 
-	id, err := db.NewProduct(PMFS.ProductData{Name: "Demo Product"})
-	if err != nil {
-		log.Fatalf("NewProduct: %v", err)
-	}
-
-	p := &db.Products[id-1]
-	prjID, err := p.NewProject(PMFS.ProjectData{Name: "Demo Project"})
-	if err != nil {
-		log.Fatalf("NewProject: %v", err)
-	}
-	prj, err := p.Project(prjID)
-	if err != nil {
-		log.Fatalf("Project: %v", err)
-	}
-
-	prj.D.Priority = "high"
-	prj.D.StartDate = time.Now()
-	prj.D.EndDate = time.Now().Add(time.Hour * 24 * 10)
-
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Println("Choose an option:")
-		fmt.Println("1) Add requirement")
-		fmt.Println("2) Export to Excel")
-		fmt.Println("3) Import from Excel")
-		fmt.Println("4) Ingest attachment")
-		fmt.Println("5) Show project overview")
-		fmt.Println("6) Analyse requirement")
-		fmt.Println("7) Suggest related requirements")
-		fmt.Println("8) Exit")
+		fmt.Println("Product menu:")
+		fmt.Println("1) List products")
+		fmt.Println("2) Select product")
+		fmt.Println("3) Create product")
+		fmt.Println("4) Exit")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -355,20 +474,15 @@ func main() {
 
 		switch choice {
 		case "1":
-			addRequirement(scanner, prj)
+			listProducts()
 		case "2":
-			exportExcel(scanner, prj)
+			p := selectProduct(scanner)
+			if p != nil {
+				projectMenu(scanner, p)
+			}
 		case "3":
-			importExcel(scanner, p, &prj)
-		case "4":
-			ingestAttachment(scanner, prj)
-		case "5":
-			showOverview(prj)
-		case "6":
-			analyseRequirement(scanner, prj)
-		case "7":
-			suggestRelated(scanner, prj)
-		case "8", "exit":
+			createProduct(scanner)
+		case "4", "exit":
 			fmt.Println("Goodbye!")
 			return
 		default:
