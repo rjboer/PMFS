@@ -1,0 +1,17 @@
+[[products]]
+id = 1
+name = 'Demo Product'
+
+[[products.projects]]
+id = 1
+productid = 1
+name = 'Demo Project'
+
+[[products]]
+id = 2
+name = 'Demo Product'
+
+[[products.projects]]
+id = 1
+productid = 2
+name = 'Demo Project'

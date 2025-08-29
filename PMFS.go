@@ -826,6 +826,7 @@ func (prj *ProjectType) AddAttachmentFromText(text string) (Attachment, error) {
 
 // AddRequirement appends a requirement to the project and persists it.
 func (prj *ProjectType) AddRequirement(r Requirement) error {
+	r.ID = len(prj.D.Requirements) + 1
 	prj.D.Requirements = append(prj.D.Requirements, r)
 	return prj.Save()
 }

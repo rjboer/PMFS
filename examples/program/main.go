@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	PMFS "github.com/rjboer/PMFS"
@@ -49,48 +47,11 @@ func main() {
 	prj.D.StartDate = time.Now()
 	prj.D.EndDate = time.Now().Add(time.Hour * 24 * 10)
 
-	if err != nil {
-		log.Fatalf("Project: %v", err)
-	}
+	x := PMFS.Requirement{}
+	x.Name = "test"
+	x.Description = "tester"
+	prj.AddRequirement(x)
+	PMFS.DB.Save()
+	prj.ExportExcel("./test.xlsx")
 
-	attDir := filepath.Join(path, "products", "1", "projects", "1", "attachments", "1")
-	if err := os.MkdirAll(attDir, 0o755); err != nil {
-		log.Fatalf("mkdir attDir: %v", err)
-	}
-	src := filepath.Join("testdata", "spec1.txt")
-	dst := filepath.Join(attDir, "spec1.txt")
-	if err := copyFile(src, dst); err != nil {
-		log.Fatalf("copy file: %v", err)
-	}
-
-	att := PMFS.Attachment{
-		ID:       1,
-		Filename: "spec1.txt",
-		RelPath:  filepath.ToSlash(filepath.Join("attachments", "1", "spec1.txt")),
-		Mimetype: "text/plain",
-		AddedAt:  time.Now(),
-	}
-	prj.D.Attachments = append(prj.D.Attachments, att)
-
-	if err := prj.D.Attachments[0].Analyze(prj); err != nil {
-		log.Fatalf("Attachment Analyze: %v", err)
-	}
-
-	for i := range prj.D.PotentialRequirements {
-		r := &prj.D.PotentialRequirements[i]
-		pass, follow, err := r.Analyse("product_manager", "1")
-		if err != nil {
-			log.Fatalf("Requirement Analyse: %v", err)
-		}
-		fmt.Printf("%s agrees? %v\n", r.Name, pass)
-		if follow != "" {
-			fmt.Printf("  Follow-up: %s\n", follow)
-		}
-		if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
-			log.Fatalf("EvaluateGates: %v", err)
-		}
-		for _, gr := range r.GateResults {
-			fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
-		}
-	}
 }

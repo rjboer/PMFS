@@ -1,0 +1,32 @@
+id = 1
+productid = 1
+name = 'Demo Project'
+
+[projectdata]
+name = 'Demo Project'
+scope = ''
+start_date = 2025-08-29T23:01:52.9171876+02:00
+end_date = 2025-09-08T23:01:52.9171876+02:00
+status = ''
+priority = 'high'
+attachments = []
+intelligence = []
+potential_requirements = []
+requirement_FixedCategories = false
+
+[[projectdata.requirements]]
+id = 1
+name = 'test'
+description = 'tester'
+priority = 0
+level = 0
+user = ''
+status = ''
+created_at = 0001-01-01T00:00:00Z
+updated_at = 0001-01-01T00:00:00Z
+parent_id = 0
+category = ''
+history = []
+intelligence_links = []
+gate_results = []
+tags = []
