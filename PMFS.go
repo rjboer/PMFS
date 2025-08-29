@@ -125,13 +125,6 @@ type ProjectType struct {
 	D ProjectData `json:"projectdata" toml:"-"`
 }
 
-// ensureLLM assigns the package's default client if none is configured.
-func (prj *ProjectType) ensureLLM() {
-	if prj.LLM == nil {
-		prj.LLM = llm.DefaultClient
-	}
-}
-
 type ProjectData struct {
 	Name         string        `json:"name" toml:"name"`
 	Scope        string        `json:"scope" toml:"scope"`
@@ -258,9 +251,7 @@ func (att *Attachment) GenerateRequirements(db *Database, prj *ProjectType, stra
 		strategy = "gemini"
 	}
 
-	prj.ensureLLM()
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
-
 
 	reqs, err := db.LLM.AnalyzeAttachment(full)
 
