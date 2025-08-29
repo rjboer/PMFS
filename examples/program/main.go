@@ -38,13 +38,68 @@ func addRequirement(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 }
 
 // exportExcel saves the database and writes the project overview to an Excel
-// file.
-func exportExcel(prj *PMFS.ProjectType) {
+// file at a user-specified path.
+func exportExcel(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
+	fmt.Print("Output path: ")
+	if !scanner.Scan() {
+		return
+	}
+	path := scanner.Text()
+
 	if err := PMFS.DB.Save(); err != nil {
 		log.Printf("Save DB: %v", err)
 	}
-	if err := prj.ExportExcel("./test.xlsx"); err != nil {
-		log.Printf("ExportExcel: %v", err)
+	if err := prj.ExportExcel(path); err != nil {
+		fmt.Printf("Export failed: %v\n", err)
+		return
+	}
+	fmt.Printf("Project exported to %s\n", path)
+}
+
+// importExcel loads project data from an Excel file and merges it into the
+// current project or creates a new one when no project exists.
+func importExcel(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
+	fmt.Print("Path to Excel file: ")
+	if !scanner.Scan() {
+		return
+	}
+	path := scanner.Text()
+
+	data, err := PMFS.ImportProjectExcel(path)
+	if err != nil {
+		fmt.Printf("Import failed: %v\n", err)
+		return
+	}
+
+	if *prj == nil {
+		id, err := p.NewProject(*data)
+		if err != nil {
+			fmt.Printf("Create project: %v\n", err)
+			return
+		}
+		np, err := p.Project(id)
+		if err != nil {
+			fmt.Printf("Load project: %v\n", err)
+			return
+		}
+		*prj = np
+		fmt.Println("Created new project from Excel data.")
+	} else {
+		(*prj).Name = data.Name
+		(*prj).D.Name = data.Name
+		(*prj).D.Scope = data.Scope
+		(*prj).D.StartDate = data.StartDate
+		(*prj).D.EndDate = data.EndDate
+		(*prj).D.Status = data.Status
+		(*prj).D.Priority = data.Priority
+		(*prj).D.Requirements = append((*prj).D.Requirements, data.Requirements...)
+		(*prj).D.PotentialRequirements = append((*prj).D.PotentialRequirements, data.PotentialRequirements...)
+		(*prj).D.Intelligence = append((*prj).D.Intelligence, data.Intelligence...)
+		fmt.Println("Merged Excel data into current project.")
+	}
+
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
 	}
 }
 
@@ -235,8 +290,9 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 }
 
 // This example demonstrates basic project interaction via a simple command
-// loop. It allows adding requirements, exporting to Excel and viewing the
-// project's current state. Requires the GEMINI_API_KEY environment variable.
+// loop. It allows adding requirements, importing/exporting to Excel and viewing
+// the project's current state. Requires the GEMINI_API_KEY environment
+// variable.
 func main() {
 	path := "./RoelofCompany"
 	if err := os.MkdirAll(path, 0o777); err != nil {
@@ -272,11 +328,12 @@ func main() {
 		fmt.Println("Choose an option:")
 		fmt.Println("1) Add requirement")
 		fmt.Println("2) Export to Excel")
-		fmt.Println("3) Ingest attachment")
-		fmt.Println("4) Show project overview")
-		fmt.Println("5) Analyse requirement")
-		fmt.Println("6) Suggest related requirements")
-		fmt.Println("7) Exit")
+		fmt.Println("3) Import from Excel")
+		fmt.Println("4) Ingest attachment")
+		fmt.Println("5) Show project overview")
+		fmt.Println("6) Analyse requirement")
+		fmt.Println("7) Suggest related requirements")
+		fmt.Println("8) Exit")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -288,16 +345,18 @@ func main() {
 		case "1":
 			addRequirement(scanner, prj)
 		case "2":
-			exportExcel(prj)
+			exportExcel(scanner, prj)
 		case "3":
-			ingestAttachment(scanner, prj)
+			importExcel(scanner, p, &prj)
 		case "4":
-			showOverview(prj)
+			ingestAttachment(scanner, prj)
 		case "5":
-			analyseRequirement(scanner, prj)
+			showOverview(prj)
 		case "6":
+			analyseRequirement(scanner, prj)
+		case "7":
 			suggestRelated(scanner, prj)
-		case "7", "exit":
+		case "8", "exit":
 			fmt.Println("Goodbye!")
 			return
 		default:
