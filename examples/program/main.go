@@ -30,6 +30,10 @@ func addRequirement(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	r := PMFS.Requirement{Name: name, Description: desc}
 	if err := prj.AddRequirement(r); err != nil {
 		log.Printf("AddRequirement: %v", err)
+		return
+	}
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
 	}
 }
 
@@ -155,6 +159,81 @@ func showOverview(prj *PMFS.ProjectType) {
 	}
 }
 
+// analyseRequirement lists existing requirements, lets the user choose one and
+// runs QualityControlAI on it, printing the results.
+func analyseRequirement(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
+	if len(prj.D.Requirements) == 0 {
+		fmt.Println("No requirements to analyse.")
+		return
+	}
+	fmt.Println("Select requirement to analyse:")
+	for i, r := range prj.D.Requirements {
+		fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
+	}
+	fmt.Print("> ")
+	if !scanner.Scan() {
+		return
+	}
+	idx, err := strconv.Atoi(scanner.Text())
+	if err != nil || idx < 1 || idx > len(prj.D.Requirements) {
+		fmt.Println("Invalid selection")
+		return
+	}
+	req := &prj.D.Requirements[idx-1]
+	pass, follow, err := req.QualityControlAI("product_manager", "1", []string{"clarity-form-1"})
+	if err != nil {
+		log.Printf("QualityControlAI: %v", err)
+		return
+	}
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
+	}
+	fmt.Printf("Analysis pass: %v\n", pass)
+	if follow != "" {
+		fmt.Printf("Follow-up: %s\n", follow)
+	}
+	fmt.Println("Gate results:")
+	for _, gr := range req.GateResults {
+		fmt.Printf("  %s: %v\n", gr.Gate.ID, gr.Pass)
+	}
+}
+
+// suggestRelated lets the user pick a requirement and asks the LLM for related
+// requirements, printing any suggestions.
+func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
+	if len(prj.D.Requirements) == 0 {
+		fmt.Println("No requirements available.")
+		return
+	}
+	fmt.Println("Select requirement for suggestions:")
+	for i, r := range prj.D.Requirements {
+		fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
+	}
+	fmt.Print("> ")
+	if !scanner.Scan() {
+		return
+	}
+	idx, err := strconv.Atoi(scanner.Text())
+	if err != nil || idx < 1 || idx > len(prj.D.Requirements) {
+		fmt.Println("Invalid selection")
+		return
+	}
+	req := &prj.D.Requirements[idx-1]
+	others, err := req.SuggestOthers()
+	if err != nil {
+		log.Printf("SuggestOthers: %v", err)
+		return
+	}
+	if len(others) == 0 {
+		fmt.Println("No related requirements suggested.")
+		return
+	}
+	fmt.Println("Suggested requirements:")
+	for _, r := range others {
+		fmt.Printf("- %s: %s\n", r.Name, r.Description)
+	}
+}
+
 // This example demonstrates basic project interaction via a simple command
 // loop. It allows adding requirements, exporting to Excel and viewing the
 // project's current state. Requires the GEMINI_API_KEY environment variable.
@@ -195,7 +274,9 @@ func main() {
 		fmt.Println("2) Export to Excel")
 		fmt.Println("3) Ingest attachment")
 		fmt.Println("4) Show project overview")
-		fmt.Println("5) Exit")
+		fmt.Println("5) Analyse requirement")
+		fmt.Println("6) Suggest related requirements")
+		fmt.Println("7) Exit")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -212,7 +293,11 @@ func main() {
 			ingestAttachment(scanner, prj)
 		case "4":
 			showOverview(prj)
-		case "5", "exit":
+		case "5":
+			analyseRequirement(scanner, prj)
+		case "6":
+			suggestRelated(scanner, prj)
+		case "7", "exit":
 			fmt.Println("Goodbye!")
 			return
 		default:
