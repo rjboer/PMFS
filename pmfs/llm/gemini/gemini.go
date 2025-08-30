@@ -142,12 +142,12 @@ func (c *RESTClient) AnalyzeAttachment(path string) ([]Requirement, error) {
 		return c.generateText(string(b))
 	}
 
-	fileID, mimeType, err := c.upload(path)
+	fileURI, mimeType, err := c.upload(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.generateFile(fileID, mimeType)
+	return c.generateFile(fileURI, mimeType)
 }
 
 // Ask sends a prompt to Gemini and returns the raw text response.
@@ -163,7 +163,7 @@ func (c *RESTClient) Ask(prompt string) (string, error) {
 	return c.generate(body)
 }
 
-func (c *RESTClient) upload(path string) (fileID, mimeType string, err error) {
+func (c *RESTClient) upload(path string) (fileURI, mimeType string, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", "", err
@@ -204,15 +204,16 @@ func (c *RESTClient) upload(path string) (fileID, mimeType string, err error) {
 		File struct {
 			Name     string `json:"name"`
 			MimeType string `json:"mimeType"`
+			URI      string `json:"uri"`
 		} `json:"file"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&ur); err != nil {
 		return "", "", err
 	}
-	return ur.File.Name, ur.File.MimeType, nil
+	return ur.File.URI, ur.File.MimeType, nil
 }
 
-func (c *RESTClient) generateFile(fileID, mimeType string) ([]Requirement, error) {
+func (c *RESTClient) generateFile(fileURI, mimeType string) ([]Requirement, error) {
 	prompt := `You are an assistant that extracts potential software requirements from files.
 Return a JSON array of objects with fields "id", "name", and "description".`
 
@@ -221,7 +222,7 @@ Return a JSON array of objects with fields "id", "name", and "description".`
 			"parts": []any{
 				map[string]any{
 					"file_data": map[string]any{
-						"file_uri":  fileID,
+						"file_uri":  fileURI,
 						"mime_type": mimeType,
 					},
 				},

@@ -3,6 +3,11 @@ package gemini
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,6 +97,70 @@ func TestRequirementUnmarshalNonNumericID(t *testing.T) {
 	var reqs []Requirement
 	if err := json.Unmarshal(data, &reqs); err == nil {
 		t.Fatalf("expected error for non-numeric id")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestAnalyzeAttachmentUsesUploadURI(t *testing.T) {
+	expectedURI := "https://generativelanguage.googleapis.com/v1beta/files/abc123"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/upload/v1beta/files":
+			w.Header().Set("Content-Type", "application/json")
+			io.WriteString(w, fmt.Sprintf(`{"file":{"name":"files/abc123","mimeType":"image/png","uri":%q}}`, expectedURI))
+		case "/v1beta/models/gemini-1.5-flash-latest:generateContent":
+			var body struct {
+				Contents []struct {
+					Parts []struct {
+						FileData struct {
+							FileURI string `json:"file_uri"`
+						} `json:"file_data"`
+					} `json:"parts"`
+				} `json:"contents"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode body: %v", err)
+			}
+			got := body.Contents[0].Parts[0].FileData.FileURI
+			if got != expectedURI {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			io.WriteString(w, `{"candidates":[{"content":{"parts":[{"text":"[]"}]}}]}`)
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	c := &RESTClient{
+		APIKey: "test-key",
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			req.URL.Scheme = u.Scheme
+			req.URL.Host = u.Host
+			return http.DefaultTransport.RoundTrip(req)
+		})},
+	}
+
+	tmp, err := os.CreateTemp(t.TempDir(), "file*.png")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	if _, err := tmp.Write([]byte("data")); err != nil {
+		t.Fatalf("write temp: %v", err)
+	}
+	tmp.Close()
+
+	if _, err := c.AnalyzeAttachment(tmp.Name()); err != nil {
+		t.Fatalf("AnalyzeAttachment: %v", err)
 	}
 }
 
