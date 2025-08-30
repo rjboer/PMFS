@@ -723,11 +723,13 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
+		listProducts()
+		fmt.Println()
 		fmt.Println("Product menu:")
-		fmt.Println("1) List products")
-		fmt.Println("2) Select product")
-		fmt.Println("3) Create product")
-		fmt.Println("4) Exit")
+		fmt.Println()
+		fmt.Println("1) Select product")
+		fmt.Println("2) Create product")
+		fmt.Println("3) Exit")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -737,15 +739,13 @@ func main() {
 
 		switch choice {
 		case "1":
-			listProducts()
-		case "2":
 			p := selectProduct(scanner)
 			if p != nil {
 				productMenu(scanner, p)
 			}
-		case "3":
+		case "2":
 			createProduct(scanner)
-		case "4", "exit":
+		case "3", "exit":
 			fmt.Println("Goodbye!")
 			return
 		default:
