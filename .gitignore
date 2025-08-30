@@ -3,3 +3,5 @@
 *.toml
 *.xlsx
 *.key
+examples/program/RoelofCompany/
+examples/program/
