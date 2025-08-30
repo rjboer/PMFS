@@ -892,3 +892,28 @@ func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs [
 	}
 	return nil
 }
+
+// AnalyseAll runs QualityControlAI on both confirmed and potential requirements.
+// It processes all requirements, returning the first error encountered, and
+// persists any gate evaluation results.
+func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) error {
+	var firstErr error
+
+	for i := range prj.D.Requirements {
+		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+
+	for i := range prj.D.PotentialRequirements {
+		if _, _, err := prj.D.PotentialRequirements[i].QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+
+	if err := prj.Save(); err != nil && firstErr == nil {
+		firstErr = err
+	}
+
+	return firstErr
+}
