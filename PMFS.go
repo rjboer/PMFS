@@ -876,6 +876,31 @@ func (prj *ProjectType) AddAttachmentFromText(text string) (Attachment, error) {
 	return *ptr, nil
 }
 
+// ActivateRequirement moves a potential requirement into the confirmed requirements list.
+func (prj *ProjectType) ActivateRequirement(idx int) {
+	if idx < 0 || idx >= len(prj.D.PotentialRequirements) {
+		return
+	}
+	r := prj.D.PotentialRequirements[idx]
+	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements[:idx], prj.D.PotentialRequirements[idx+1:]...)
+	r.ID = len(prj.D.Requirements) + 1
+	prj.D.Requirements = append(prj.D.Requirements, r)
+	_ = prj.Save()
+}
+
+// ActivateAllPotential promotes all potential requirements to confirmed requirements.
+func (prj *ProjectType) ActivateAllPotential() {
+	if len(prj.D.PotentialRequirements) == 0 {
+		return
+	}
+	for _, r := range prj.D.PotentialRequirements {
+		r.ID = len(prj.D.Requirements) + 1
+		prj.D.Requirements = append(prj.D.Requirements, r)
+	}
+	prj.D.PotentialRequirements = nil
+	_ = prj.Save()
+}
+
 // AddRequirement appends a requirement to the project and persists it.
 func (prj *ProjectType) AddRequirement(r Requirement) error {
 	r.ID = len(prj.D.Requirements) + 1
