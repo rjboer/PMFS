@@ -176,10 +176,14 @@ func editProject(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 // productMenu provides options for a selected product.
 func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s\n", p.Name)
+		fmt.Println()
 		fmt.Println("1) Project operations")
 		fmt.Println("2) Edit product")
 		fmt.Println("3) Back to product list")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -206,6 +210,9 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 			}
 		case "3", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -215,13 +222,17 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 // projectOpsMenu handles project-related operations for a product.
 func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project operations\n", p.Name)
+		fmt.Println()
 		fmt.Println("1) List projects")
 		fmt.Println("2) Create project")
 		fmt.Println("3) Edit project")
 		fmt.Println("4) Delete project")
 		fmt.Println("5) Select project")
 		fmt.Println("6) Back to product menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -279,6 +290,9 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 			}
 		case "6", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -565,12 +579,16 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 // projectMenu handles project-specific operations for a loaded project.
 func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project: %s\n", p.Name, prj.Name)
+		fmt.Println()
 		fmt.Println("1) Requirements")
 		fmt.Println("2) Attachments")
 		fmt.Println("3) Analysis")
 		fmt.Println("4) Export/Import")
 		fmt.Println("5) Back to product menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -589,6 +607,9 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 			exportImportMenu(scanner, p, &prj)
 		case "5", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -598,10 +619,14 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 // requirementsMenu manages requirement operations.
 func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project: %s > Requirements\n", p.Name, prj.Name)
+		fmt.Println()
 		fmt.Println("1) Add requirement")
 		fmt.Println("2) Show project overview")
 		fmt.Println("3) Back to project menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -616,6 +641,9 @@ func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Pro
 			showOverview(prj)
 		case "3", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -625,9 +653,13 @@ func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Pro
 // attachmentsMenu manages attachment ingestion.
 func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project: %s > Attachments\n", p.Name, prj.Name)
+		fmt.Println()
 		fmt.Println("1) Ingest attachment")
 		fmt.Println("2) Back to project menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -640,6 +672,9 @@ func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Proj
 			ingestAttachment(scanner, prj)
 		case "2", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -649,10 +684,14 @@ func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Proj
 // analysisMenu groups requirement analysis operations.
 func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project: %s > Analysis\n", p.Name, prj.Name)
+		fmt.Println()
 		fmt.Println("1) Analyse requirement")
 		fmt.Println("2) Suggest related requirements")
 		fmt.Println("3) Back to project menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -667,6 +706,9 @@ func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Project
 			suggestRelated(scanner, prj)
 		case "3", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -676,10 +718,14 @@ func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Project
 // exportImportMenu handles Excel export and import.
 func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
 	for {
+		fmt.Println()
 		fmt.Printf("Product: %s > Project: %s > Export/Import\n", p.Name, (*prj).Name)
+		fmt.Println()
 		fmt.Println("1) Export to Excel")
 		fmt.Println("2) Import from Excel")
 		fmt.Println("3) Back to project menu")
+		fmt.Println("99) Exit")
+		fmt.Println()
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -694,6 +740,9 @@ func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Pr
 			importExcel(scanner, p, prj)
 		case "3", "back":
 			return
+		case "99", "exit":
+			fmt.Println("Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Unknown option")
 		}
@@ -709,6 +758,8 @@ func main() {
 	loadEnv()
 	if _, ok := os.LookupEnv("GEMINI_API_KEY"); !ok {
 		fmt.Fprintln(os.Stderr, "GEMINI_API_KEY environment variable not set")
+		fmt.Fprintln(os.Stderr, "Press any key to continue...")
+		_, _ = bufio.NewReader(os.Stdin).ReadByte()
 		os.Exit(1)
 	}
 
