@@ -212,11 +212,9 @@ func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string
 }
 
 // SuggestOthers asks the client for related potential requirements based on
-
-// this requirement's description and returns them.
-
-func (r *Requirement) SuggestOthers() ([]Requirement, error) {
-
+// this requirement's description. Suggested requirements are appended to the
+// project's potential requirements slice and persisted to disk.
+func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
 	resp, err := DB.LLM.Ask(prompt)
 	if err != nil {
@@ -228,6 +226,10 @@ func (r *Requirement) SuggestOthers() ([]Requirement, error) {
 	}
 	var reqs []Requirement
 	if err := json.Unmarshal(raw, &reqs); err != nil {
+		return nil, err
+	}
+	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, reqs...)
+	if err := prj.Save(); err != nil {
 		return nil, err
 	}
 	return reqs, nil
@@ -318,6 +320,9 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, FromGemini(r))
 	}
 	att.Analyzed = true
+	if err := prj.Save(); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -24,12 +24,23 @@ func TestRequirementSuggestOthers(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	reqs, err := r.SuggestOthers()
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
+	}
+	if len(prj.D.PotentialRequirements) != 2 {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(prjReload.D.PotentialRequirements) != 2 {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
 	}
 }
 
@@ -44,7 +55,8 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	if _, err := r.SuggestOthers(); err == nil {
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	if _, err := r.SuggestOthers(prj); err == nil {
 		t.Fatalf("expected error for malformed response")
 	}
 }
@@ -61,11 +73,15 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	reqs, err := r.SuggestOthers()
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
+	}
+	if len(prj.D.PotentialRequirements) != 2 {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
 	}
 }
