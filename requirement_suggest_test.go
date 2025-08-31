@@ -2,6 +2,7 @@ package PMFS
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,12 +25,26 @@ func TestRequirementSuggestOthers(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	reqs, err := r.SuggestOthers()
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
+	}
+	if len(prj.D.PotentialRequirements) != 2 {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+	var dp struct {
+		D ProjectData `toml:"projectdata"`
+	}
+	path := filepath.Join(projectDir(prj.ProductID, prj.ID), projectTOML)
+	if err := readTOML(path, &dp); err != nil {
+		t.Fatalf("readTOML: %v", err)
+	}
+	if len(dp.D.PotentialRequirements) != 2 {
+		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
 	}
 }
 
@@ -44,7 +59,8 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	if _, err := r.SuggestOthers(); err == nil {
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	if _, err := r.SuggestOthers(prj); err == nil {
 		t.Fatalf("expected error for malformed response")
 	}
 }
@@ -61,11 +77,25 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	reqs, err := r.SuggestOthers()
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
+	}
+	if len(prj.D.PotentialRequirements) != 2 {
+		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+	var dp2 struct {
+		D ProjectData `toml:"projectdata"`
+	}
+	path := filepath.Join(projectDir(prj.ProductID, prj.ID), projectTOML)
+	if err := readTOML(path, &dp2); err != nil {
+		t.Fatalf("readTOML: %v", err)
+	}
+	if len(dp2.D.PotentialRequirements) != 2 {
+		t.Fatalf("project.toml not updated: %#v", dp2.D.PotentialRequirements)
 	}
 }

@@ -262,6 +262,16 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
 		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
 	}
+	var dp struct {
+		D ProjectData `toml:"projectdata"`
+	}
+	p := filepath.Join(projectDir(prj.ProductID, prj.ID), projectTOML)
+	if err := readTOML(p, &dp); err != nil {
+		t.Fatalf("readTOML: %v", err)
+	}
+	if len(dp.D.PotentialRequirements) != 1 {
+		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+	}
 }
 
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
