@@ -262,6 +262,13 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
 		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
 	}
+	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
+	if err := prjReload.Load(); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(prjReload.D.PotentialRequirements) != 1 || prjReload.D.PotentialRequirements[0].Name != "R1" {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	}
 }
 
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {

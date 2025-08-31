@@ -561,7 +561,7 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		return
 	}
 	req := &prj.D.Requirements[idx-1]
-	others, err := req.SuggestOthers()
+	others, err := req.SuggestOthers(prj)
 	if err != nil {
 		log.Printf("SuggestOthers: %v", err)
 		return
