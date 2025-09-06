@@ -2,6 +2,7 @@ package PMFS
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -35,12 +36,16 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if len(prj.D.PotentialRequirements) != 2 {
 		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
 	}
-	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
-	if err := prjReload.Load(); err != nil {
-		t.Fatalf("Load: %v", err)
+	var dp struct {
+		D ProjectData `toml:"projectdata"`
 	}
-	if len(prjReload.D.PotentialRequirements) != 2 {
-		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	path := filepath.Join(projectDir(prj.ProductID, prj.ID), projectTOML)
+	if err := readTOML(path, &dp); err != nil {
+		t.Fatalf("readTOML: %v", err)
+	}
+	if len(dp.D.PotentialRequirements) != 2 {
+		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+
 	}
 }
 
@@ -84,4 +89,16 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	if len(prj.D.PotentialRequirements) != 2 {
 		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
 	}
+
+	var dp2 struct {
+		D ProjectData `toml:"projectdata"`
+	}
+	path := filepath.Join(projectDir(prj.ProductID, prj.ID), projectTOML)
+	if err := readTOML(path, &dp2); err != nil {
+		t.Fatalf("readTOML: %v", err)
+	}
+	if len(dp2.D.PotentialRequirements) != 2 {
+		t.Fatalf("project.toml not updated: %#v", dp2.D.PotentialRequirements)
+	}
+
 }
