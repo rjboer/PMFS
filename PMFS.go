@@ -152,22 +152,46 @@ type ProjectData struct {
 
 // Requirement represents a confirmed requirement with detailed metadata.
 type Requirement struct {
-	ID               int             `json:"id" toml:"id"`
-	Name             string          `json:"name" toml:"name"`
-	Description      string          `json:"description" toml:"description"`
-	Priority         int             `json:"priority" toml:"priority"` // 1 (highest) to 8 (lowest)
-	Level            int             `json:"level" toml:"level"`       // Hierarchical level within requirements.
-	User             string          `json:"user" toml:"user"`
-	Status           string          `json:"status" toml:"status"` // e.g., "Draft", "Confirmed"
-	CreatedAt        time.Time       `json:"created_at" toml:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at" toml:"updated_at"`
-	ParentID         int             `json:"parent_id" toml:"parent_id"` // 0 for top‑level
-	Category         string          `json:"category" toml:"category"`   // e.g., "System Requirements"
-	History          []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
-	IntelligenceLink []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
-	GateResults      []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
+	ID                 int             `json:"id" toml:"id"`
+	Name               string          `json:"name" toml:"name"`
+	Description        string          `json:"description" toml:"description"`
+	Priority           int             `json:"priority" toml:"priority"` // 1 (highest) to 8 (lowest)
+	Level              int             `json:"level" toml:"level"`       // Hierarchical level within requirements.
+	User               string          `json:"user" toml:"user"`
+	Status             string          `json:"status" toml:"status"` // e.g., "Draft", "Confirmed"
+	CreatedAt          time.Time       `json:"created_at" toml:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at" toml:"updated_at"`
+	ParentID           int             `json:"parent_id" toml:"parent_id"` // 0 for top‑level
+	Category           string          `json:"category" toml:"category"`   // e.g., "System Requirements"
+	History            []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
+	IntelligenceLink   []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
+	GateResults        []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
+	RecommendedChanges []Ideas         `json:"RequirementImprovements" toml:"requirementideas"`
 	// Optional: Tags can help with flexible categorization or filtering.
 	Tags []string `json:"tags,omitempty" toml:"tags"`
+}
+
+// An Idea is a take on the requirement, as a way to improve this,  as with the following example:
+// Ideas describe an element of the project -> this turns into requirements.
+// The following (bad dual requirement)
+// The logistics line should have transport belts, these belts should be 4 meters long
+// Improvements:
+// Belt Material
+// Belt Width
+// Belt Speed
+// Belt Capacity
+// Belt Drive Mechanism
+// Belt Cleaning Mechanism
+// Emergency Stop Mechanism
+// Belt Alignment System
+// Belt Tensioning System
+// Number of Belts
+// There are several ways to improve the requirement or add new one
+type Ideas struct {
+	Name                  string `json:"name" toml:"name"`
+	Description           string `json:"description" toml:"description"`
+	SuggestedRequirements []Requirement
+	Processed             bool `json:"IdeaProcessed" toml:"IdeaProcessed"` //the idea has been processed
 }
 
 // FromGemini converts a Gemini requirement into a PMFS requirement.
@@ -384,6 +408,8 @@ type Intelligence struct {
 	Content     string    `json:"content" toml:"content"`
 	Description string    `json:"description" toml:"description"`
 	ExtractedAt time.Time `json:"extracted_at" toml:"extracted_at"`
+	//DesignAngles describe ways/topics to describe the functionality that is caputured in the intelligence.
+	DesignAngles []Ideas `json:"DesignAngles_Ideas" toml:"DesignAngles_Ideas"`
 }
 
 // -----------------------------------------------------------------------------
