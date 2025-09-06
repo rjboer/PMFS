@@ -45,6 +45,7 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	}
 	if len(dp.D.PotentialRequirements) != 2 {
 		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+
 	}
 }
 
@@ -88,6 +89,7 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	if len(prj.D.PotentialRequirements) != 2 {
 		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
 	}
+
 	var dp2 struct {
 		D ProjectData `toml:"projectdata"`
 	}
@@ -98,4 +100,5 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	if len(dp2.D.PotentialRequirements) != 2 {
 		t.Fatalf("project.toml not updated: %#v", dp2.D.PotentialRequirements)
 	}
+
 }

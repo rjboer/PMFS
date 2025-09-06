@@ -211,7 +211,7 @@ func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string
 	return pass, ans, nil
 }
 
-// SuggestOthers asks the client for related potential requirements based on
+// SuggestOthers asks the client for related potential requirements based o
 // this requirement's description. Any returned requirements are appended to the
 // provided project and persisted immediately. The appended requirements are also
 // returned to the caller.
@@ -230,11 +230,13 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 	if err := json.Unmarshal(raw, &reqs); err != nil {
 		return nil, err
 	}
+
 	if prj != nil {
 		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, reqs...)
 		if err := prj.Save(); err != nil {
 			return nil, err
 		}
+
 	}
 	return reqs, nil
 }
@@ -324,6 +326,7 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	}
 	att.Analyzed = true
 	// Persist newly added potential requirements immediately.
+
 	if err := prj.Save(); err != nil {
 		return err
 	}
