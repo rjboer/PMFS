@@ -177,12 +177,14 @@ func editProject(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s\n", p.Name)
 		fmt.Println()
 		fmt.Println("1) Project operations")
 		fmt.Println("2) Edit product")
 		fmt.Println("3) Back to product list")
 		fmt.Println("99) Exit")
+		fmt.Println("-----------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -223,6 +225,7 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project operations\n", p.Name)
 		fmt.Println()
 		fmt.Println("1) List projects")
@@ -232,6 +235,7 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 		fmt.Println("5) Select project")
 		fmt.Println("6) Back to product menu")
 		fmt.Println("99) Exit")
+		fmt.Println("-----------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -397,6 +401,11 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return os.WriteFile(dst, b, 0o644)
+}
+
+func whiterows() {
+	fmt.Printf("\n\n\n\n\n\n\n\n\n")
+	fmt.Println("--------------------------------------------------------")
 }
 
 // ingestAttachment asks for a file path, copies it into the project's input
@@ -580,6 +589,7 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project: %s\n", p.Name, prj.Name)
 		fmt.Println()
 		fmt.Println("1) Requirements")
@@ -589,6 +599,7 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 		fmt.Println("5) Back to product menu")
 		fmt.Println("99) Exit")
 		fmt.Println()
+		fmt.Println("--------------------------------------------------------")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
@@ -620,12 +631,14 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project: %s > Requirements\n", p.Name, prj.Name)
 		fmt.Println()
 		fmt.Println("1) Add requirement")
 		fmt.Println("2) Show project overview")
 		fmt.Println("3) Back to project menu")
 		fmt.Println("99) Exit")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -654,11 +667,13 @@ func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Pro
 func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project: %s > Attachments\n", p.Name, prj.Name)
 		fmt.Println()
 		fmt.Println("1) Ingest attachment")
 		fmt.Println("2) Back to project menu")
 		fmt.Println("99) Exit")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -685,12 +700,14 @@ func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Proj
 func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project: %s > Analysis\n", p.Name, prj.Name)
 		fmt.Println()
 		fmt.Println("1) Analyse requirement")
 		fmt.Println("2) Suggest related requirements")
 		fmt.Println("3) Back to project menu")
 		fmt.Println("99) Exit")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -719,12 +736,14 @@ func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Project
 func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
 	for {
 		fmt.Println()
+		whiterows()
 		fmt.Printf("Product: %s > Project: %s > Export/Import\n", p.Name, (*prj).Name)
 		fmt.Println()
 		fmt.Println("1) Export to Excel")
 		fmt.Println("2) Import from Excel")
 		fmt.Println("3) Back to project menu")
 		fmt.Println("99) Exit")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Println()
 		fmt.Print("> ")
 
@@ -774,6 +793,7 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
+		whiterows()
 		listProducts()
 		fmt.Println()
 		fmt.Println("Product menu:")
@@ -781,6 +801,7 @@ func main() {
 		fmt.Println("1) Select product")
 		fmt.Println("2) Create product")
 		fmt.Println("3) Exit")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Print("> ")
 
 		if !scanner.Scan() {
