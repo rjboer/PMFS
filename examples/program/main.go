@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -345,6 +346,29 @@ func exportExcel(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		return
 	}
 	fmt.Printf("Project exported to %s\n", path)
+}
+
+// exportProjectStruct writes the full project struct to a JSON file.
+func exportProjectStruct(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
+	fmt.Print("Output path: ")
+	if !scanner.Scan() {
+		return
+	}
+	path := scanner.Text()
+
+	if err := PMFS.DB.Save(); err != nil {
+		log.Printf("Save DB: %v", err)
+	}
+	data, err := json.MarshalIndent(prj, "", "  ")
+	if err != nil {
+		fmt.Printf("Export failed: %v\n", err)
+		return
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		fmt.Printf("Export failed: %v\n", err)
+		return
+	}
+	fmt.Printf("Project struct exported to %s\n", path)
 }
 
 // importExcel loads project data from an Excel file and merges it into the
@@ -732,7 +756,7 @@ func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Project
 	}
 }
 
-// exportImportMenu handles Excel export and import.
+// exportImportMenu handles exporting and importing project data.
 func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
 	for {
 		fmt.Println()
@@ -740,8 +764,9 @@ func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Pr
 		fmt.Printf("Product: %s > Project: %s > Export/Import\n", p.Name, (*prj).Name)
 		fmt.Println()
 		fmt.Println("1) Export to Excel")
-		fmt.Println("2) Import from Excel")
-		fmt.Println("3) Back to project menu")
+		fmt.Println("2) Export project struct")
+		fmt.Println("3) Import from Excel")
+		fmt.Println("4) Back to project menu")
 		fmt.Println("99) Exit")
 		fmt.Println("--------------------------------------------------------")
 		fmt.Println()
@@ -756,8 +781,10 @@ func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Pr
 		case "1":
 			exportExcel(scanner, *prj)
 		case "2":
+			exportProjectStruct(scanner, *prj)
+		case "3":
 			importExcel(scanner, p, prj)
-		case "3", "back":
+		case "4", "back":
 			return
 		case "99", "exit":
 			fmt.Println("Goodbye!")
