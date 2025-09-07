@@ -2,6 +2,13 @@
 
 PMFS (Product Manager File System) is a lightweight backend for storing and organizing product and project data using simple TOML files on disk. It helps create the directory layout and offers helpers to read and write product and project metadata.
 
+## Documentation
+
+The `docs/` directory contains additional resources:
+
+- [Architecture Overview](docs/architecture.md) – high-level flow of attachments, requirements and related processing.
+- [FUNCTIONS.md](docs/FUNCTIONS.md) – details about available functions and their usage.
+
 ## Dependencies
 
 - [Go](https://go.dev/) 1.23 or newer
@@ -194,5 +201,5 @@ go run ./examples/full
 - `(*AttachmentManager) AddFromInputFolder() ([]Attachment, error)`
 - `FromGemini(req gemini.Requirement) Requirement`
 
-See [FUNCTIONS.md](FUNCTIONS.md) for detailed descriptions.
+See [FUNCTIONS.md](docs/FUNCTIONS.md) for detailed descriptions.
 
