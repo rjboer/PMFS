@@ -44,7 +44,13 @@ func TestAnalyseAll(t *testing.T) {
 	}
 	prj := &prd.Projects[0]
 
-	prj.D.Requirements = []Requirement{{ID: 1, Description: "ok"}, {ID: 2, Description: "fail"}, {ID: 3, Description: "pot"}}
+	prj.D.Requirements = []Requirement{
+		{ID: 1, Description: "ok"},
+		{ID: 2, Description: "fail"},
+		{ID: 3, Description: "pot"},
+		{ID: 4, Description: "prop", Condition: ConditionType{Proposed: true}},
+		{ID: 5, Description: "del", Condition: ConditionType{Deleted: true}},
+	}
 
 	err = prj.AnalyseAll("test", "q1", []string{"completeness-1"})
 	if err == nil || err.Error() != "ask error" {
@@ -56,6 +62,12 @@ func TestAnalyseAll(t *testing.T) {
 	}
 	if len(prj.D.Requirements[2].GateResults) != 1 {
 		t.Fatalf("expected gate results for third requirement")
+	}
+	if len(prj.D.Requirements[3].GateResults) != 0 {
+		t.Fatalf("proposed requirement should be skipped")
+	}
+	if len(prj.D.Requirements[4].GateResults) != 0 {
+		t.Fatalf("deleted requirement should be skipped")
 	}
 
 	var prjReload ProjectType
@@ -69,5 +81,11 @@ func TestAnalyseAll(t *testing.T) {
 	}
 	if len(prjReload.D.Requirements[2].GateResults) != 1 {
 		t.Fatalf("gate results for third requirement not persisted")
+	}
+	if len(prjReload.D.Requirements[3].GateResults) != 0 {
+		t.Fatalf("proposed requirement should not have persisted results")
+	}
+	if len(prjReload.D.Requirements[4].GateResults) != 0 {
+		t.Fatalf("deleted requirement should not have persisted results")
 	}
 }

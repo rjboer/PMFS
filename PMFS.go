@@ -1065,7 +1065,11 @@ func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) er
 	var firstErr error
 
 	for i := range prj.D.Requirements {
-		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
+		req := &prj.D.Requirements[i]
+		if req.Condition.Proposed || req.Condition.Deleted {
+			continue
+		}
+		if _, _, err := req.QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
