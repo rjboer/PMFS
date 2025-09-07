@@ -11,7 +11,9 @@ import (
 
 func TestRequirementSuggestOthers(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
-	r := Requirement{Description: "System shall X"}
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	prj.D.Requirements = []Requirement{{Description: "System shall X"}}
+	r := &prj.D.Requirements[0]
 	mockResp := `[{"name":"R2","description":"Desc2"},{"name":"R3","description":"Desc3"}]`
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		expected := fmt.Sprintf("Given the requirement %q", r.Description)
@@ -25,7 +27,6 @@ func TestRequirementSuggestOthers(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	prj := &ProjectType{ProductID: 1, ID: 1}
 	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
@@ -35,6 +36,9 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	}
 	if len(prj.D.PotentialRequirements) != 2 {
 		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+	if reqs[0].ParentID != 0 || prj.D.PotentialRequirements[0].ParentID != 0 {
+		t.Fatalf("parent index not set: %#v", prj.D.PotentialRequirements[0])
 	}
 	var dp struct {
 		D ProjectData `toml:"projectdata"`
@@ -51,7 +55,9 @@ func TestRequirementSuggestOthers(t *testing.T) {
 
 func TestRequirementSuggestOthersMalformed(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
-	r := Requirement{Description: "System shall X"}
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	prj.D.Requirements = []Requirement{{Description: "System shall X"}}
+	r := &prj.D.Requirements[0]
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		return "not json", nil
 	}}
@@ -60,7 +66,6 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	prj := &ProjectType{ProductID: 1, ID: 1}
 	if _, err := r.SuggestOthers(prj); err == nil {
 		t.Fatalf("expected error for malformed response")
 	}
@@ -68,7 +73,9 @@ func TestRequirementSuggestOthersMalformed(t *testing.T) {
 
 func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "test-key")
-	r := Requirement{Description: "System shall X"}
+	prj := &ProjectType{ProductID: 1, ID: 1}
+	prj.D.Requirements = []Requirement{{Description: "System shall X"}}
+	r := &prj.D.Requirements[0]
 	mockResp := "Sure!\n```json\n[{\"name\":\"R2\",\"description\":\"Desc2\"},{\"name\":\"R3\",\"description\":\"Desc3\"}]\n```"
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		if strings.Contains(prompt, "Given the requirement") {
@@ -81,7 +88,6 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 		t.Fatalf("LoadSetup: %v", err)
 	}
 	DB.LLM = client
-	prj := &ProjectType{ProductID: 1, ID: 1}
 	reqs, err := r.SuggestOthers(prj)
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
@@ -91,6 +97,9 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	}
 	if len(prj.D.PotentialRequirements) != 2 {
 		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	}
+	if prj.D.PotentialRequirements[0].ParentID != 0 {
+		t.Fatalf("parent index not set: %#v", prj.D.PotentialRequirements[0])
 	}
 
 	var dp2 struct {

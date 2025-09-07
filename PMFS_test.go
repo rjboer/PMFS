@@ -273,6 +273,8 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 
 	prj := &ProjectType{ProductID: 1, ID: 2}
 	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
+	prj.D.Attachments = []Attachment{att}
+	ptr := &prj.D.Attachments[0]
 	expected = filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	if err := os.MkdirAll(filepath.Dir(expected), 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
@@ -281,14 +283,17 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if err := att.GenerateRequirements(prj, ""); err != nil {
+	if err := ptr.GenerateRequirements(prj, ""); err != nil {
 		t.Fatalf("GenerateRequirements: %v", err)
 	}
-	if !att.Analyzed {
+	if !ptr.Analyzed {
 		t.Fatalf("attachment not marked analyzed")
 	}
 	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
 		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
+	}
+	if prj.D.PotentialRequirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not set: %#v", prj.D.PotentialRequirements[0])
 	}
 	if len(prj.D.Intelligence) != 1 || prj.D.Intelligence[0].Description != "summary" {
 		t.Fatalf("intelligence not generated: %#v", prj.D.Intelligence)
@@ -306,6 +311,9 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	}
 	if len(dp.D.PotentialRequirements) != 1 {
 		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+	}
+	if dp.D.PotentialRequirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not persisted: %#v", dp.D.PotentialRequirements[0])
 	}
 	if len(dp.D.Intelligence) != 1 {
 		t.Fatalf("intelligence not persisted: %#v", dp.D.Intelligence)
@@ -392,6 +400,9 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if prj.D.PotentialRequirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not appended")
 	}
+	if prj.D.PotentialRequirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not set: %#v", prj.D.PotentialRequirements[0])
+	}
 	// ensure requirements persisted to disk
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
 	if err := prjReload.Load(); err != nil {
@@ -402,6 +413,9 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 	if prjReload.D.PotentialRequirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	}
+	if prjReload.D.PotentialRequirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not persisted: %#v", prjReload.D.PotentialRequirements[0])
 	}
 }
 

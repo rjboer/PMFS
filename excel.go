@@ -46,7 +46,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.Requirements) > 0 {
 		sheet := "Requirements"
 		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "Category", "Tags"}
+		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags"}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -62,6 +62,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.CreatedAt.Format(time.RFC3339),
 				req.UpdatedAt.Format(time.RFC3339),
 				req.ParentID,
+				req.AttachmentIndex,
 				req.Category,
 				strings.Join(req.Tags, ","),
 			}
@@ -76,7 +77,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.PotentialRequirements) > 0 {
 		sheet := "PotentialRequirements"
 		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "Category", "Tags"}
+		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags"}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -92,6 +93,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.CreatedAt.Format(time.RFC3339),
 				req.UpdatedAt.Format(time.RFC3339),
 				req.ParentID,
+				req.AttachmentIndex,
 				req.Category,
 				strings.Join(req.Tags, ","),
 			}
@@ -188,7 +190,7 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 		return nil, err
 	}
 	for _, row := range reqRows[1:] {
-		if len(row) < 12 {
+		if len(row) < 13 {
 			continue
 		}
 		var req Requirement
@@ -214,9 +216,12 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 		if req.ParentID, err = strconv.Atoi(row[9]); err != nil {
 			return nil, err
 		}
-		req.Category = row[10]
-		if row[11] != "" {
-			req.Tags = strings.Split(row[11], ",")
+		if req.AttachmentIndex, err = strconv.Atoi(row[10]); err != nil {
+			return nil, err
+		}
+		req.Category = row[11]
+		if row[12] != "" {
+			req.Tags = strings.Split(row[12], ",")
 		}
 		pd.Requirements = append(pd.Requirements, req)
 	}
@@ -224,7 +229,7 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 	// Potential requirements (optional)
 	if prRows, err := f.GetRows("PotentialRequirements"); err == nil {
 		for _, row := range prRows[1:] {
-			if len(row) < 12 {
+			if len(row) < 13 {
 				continue
 			}
 			var req Requirement
@@ -250,9 +255,12 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 			if req.ParentID, err = strconv.Atoi(row[9]); err != nil {
 				return nil, err
 			}
-			req.Category = row[10]
-			if row[11] != "" {
-				req.Tags = strings.Split(row[11], ",")
+			if req.AttachmentIndex, err = strconv.Atoi(row[10]); err != nil {
+				return nil, err
+			}
+			req.Category = row[11]
+			if row[12] != "" {
+				req.Tags = strings.Split(row[12], ",")
 			}
 			pd.PotentialRequirements = append(pd.PotentialRequirements, req)
 		}

@@ -167,9 +167,10 @@ type Requirement struct {
 	Status             string          `json:"status" toml:"status"` // e.g., "Draft", "Confirmed"
 	CreatedAt          time.Time       `json:"created_at" toml:"created_at"`
 	UpdatedAt          time.Time       `json:"updated_at" toml:"updated_at"`
-	ParentID           int             `json:"parent_id" toml:"parent_id"` // 0 for top‑level
-	Category           string          `json:"category" toml:"category"`   // e.g., "System Requirements"
-	History            []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
+	ParentID           int             `json:"parent_id" toml:"parent_id"` // index of originating requirement
+	AttachmentIndex    int             `json:"attachment_index" toml:"attachment_index"`
+	Category           string          `json:"category" toml:"category"` // e.g., "System Requirements"
+	History            []ChangeLog     `json:"history" toml:"history"`   // Record of changes to the requirement.
 	IntelligenceLink   []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
 	GateResults        []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
 	RecommendedChanges []DesignAspect  `json:"RequirementImprovements" toml:"requirementdesignaspects"`
@@ -374,9 +375,18 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	if err != nil {
 		return err
 	}
+	attIdx := -1
+	for i := range prj.D.Attachments {
+		if &prj.D.Attachments[i] == att {
+			attIdx = i
+			break
+		}
+	}
 	var newReqs []Requirement
 	for _, r := range reqs {
-		newReqs = append(newReqs, FromGemini(r))
+		nr := FromGemini(r)
+		nr.AttachmentIndex = attIdx
+		newReqs = append(newReqs, nr)
 	}
 	prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, newReqs...))
 	att.Analyzed = true
