@@ -118,3 +118,24 @@ func TestDesignAspectGenerateTemplatesMalformed(t *testing.T) {
 		t.Fatalf("expected error for malformed response")
 	}
 }
+
+func TestDesignAspectEvaluateDesignGates(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	da := DesignAspect{Templates: []Requirement{{Description: "Req1"}, {Description: "Req2"}}}
+	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		return "Yes", nil
+	}}
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	if err := da.EvaluateDesignGates([]string{"clarity-form-1"}); err != nil {
+		t.Fatalf("EvaluateDesignGates: %v", err)
+	}
+	for i := range da.Templates {
+		if len(da.Templates[i].GateResults) != 1 || !da.Templates[i].GateResults[0].Pass {
+			t.Fatalf("gate results not stored: %#v", da.Templates[i].GateResults)
+		}
+	}
+}

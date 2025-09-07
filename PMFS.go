@@ -76,6 +76,12 @@ type Database struct {
 // DB is the package-wide database instance used by helper functions.
 var DB *Database
 
+// DesignAspectGateGroup lists gate IDs evaluated for design aspect templates.
+var DesignAspectGateGroup = []string{
+	"clarity-form-1",
+	"duplicate-1",
+}
+
 // LoadSetup initialises the database at the provided path. It sets the
 // PMFS_BASEDIR environment variable, prepares the on-disk layout and loads the
 // index into memory.
@@ -234,6 +240,17 @@ func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string
 		return pass, ans, err
 	}
 	return pass, ans, nil
+}
+
+// EvaluateDesignGates runs the specified gates against each template requirement
+// in the design aspect using the database's configured LLM.
+func (da *DesignAspect) EvaluateDesignGates(gateIDs []string) error {
+	for i := range da.Templates {
+		if err := da.Templates[i].EvaluateGates(gateIDs); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // parseLLMJSON extracts the first valid JSON array from the LLM response.
