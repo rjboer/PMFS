@@ -514,14 +514,23 @@ func ingestAttachment(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 
 // showOverview prints current requirements and attachments of the project.
 func showOverview(prj *PMFS.ProjectType) {
-	fmt.Println("Requirements:")
-	if len(prj.D.Requirements) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		for _, r := range prj.D.Requirements {
-			fmt.Printf("  %d: %s - %s\n", r.ID, r.Name, r.Description)
-		}
-	}
+        fmt.Println("Requirements:")
+        if len(prj.D.Requirements) == 0 {
+                fmt.Println("  (none)")
+        } else {
+                for _, r := range prj.D.Requirements {
+                        if r.Condition.Deleted {
+                                continue
+                        }
+                        state := "inactive"
+                        if r.Condition.Active {
+                                state = "active"
+                        } else if r.Condition.Proposed {
+                                state = "proposed"
+                        }
+                        fmt.Printf("  %d: %s - %s (%s)\n", r.ID, r.Name, r.Description, state)
+                }
+        }
 
 	fmt.Println("Attachments:")
 	if len(prj.D.Attachments) == 0 {
@@ -540,10 +549,13 @@ func analyseRequirement(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		fmt.Println("No requirements to analyse.")
 		return
 	}
-	fmt.Println("Select requirement to analyse:")
-	for i, r := range prj.D.Requirements {
-		fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
-	}
+        fmt.Println("Select requirement to analyse:")
+        for i, r := range prj.D.Requirements {
+                if r.Condition.Deleted {
+                        continue
+                }
+                fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
+        }
 	fmt.Print("> ")
 	if !scanner.Scan() {
 		return
@@ -553,8 +565,12 @@ func analyseRequirement(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		fmt.Println("Invalid selection")
 		return
 	}
-	req := &prj.D.Requirements[idx-1]
-	pass, follow, err := req.QualityControlAI("product_manager", "1", []string{"clarity-form-1"})
+        req := &prj.D.Requirements[idx-1]
+        if !req.Condition.Active || req.Condition.Deleted {
+                fmt.Println("Requirement is not active.")
+                return
+        }
+        pass, follow, err := req.QualityControlAI("product_manager", "1", []string{"clarity-form-1"})
 	if err != nil {
 		log.Printf("QualityControlAI: %v", err)
 		return
@@ -579,10 +595,13 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		fmt.Println("No requirements available.")
 		return
 	}
-	fmt.Println("Select requirement for suggestions:")
-	for i, r := range prj.D.Requirements {
-		fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
-	}
+        fmt.Println("Select requirement for suggestions:")
+        for i, r := range prj.D.Requirements {
+                if r.Condition.Deleted {
+                        continue
+                }
+                fmt.Printf("%d) %s - %s\n", i+1, r.Name, r.Description)
+        }
 	fmt.Print("> ")
 	if !scanner.Scan() {
 		return
@@ -592,7 +611,11 @@ func suggestRelated(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		fmt.Println("Invalid selection")
 		return
 	}
-	req := &prj.D.Requirements[idx-1]
+        req := &prj.D.Requirements[idx-1]
+        if req.Condition.Deleted {
+                fmt.Println("Requirement is deleted.")
+                return
+        }
 	others, err := req.SuggestOthers(prj)
 	if err != nil {
 		log.Printf("SuggestOthers: %v", err)

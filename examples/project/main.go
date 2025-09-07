@@ -66,25 +66,30 @@ func main() {
 	}
 	prj.D.Attachments = append(prj.D.Attachments, att)
 
-	if err := prj.D.Attachments[0].Analyze(prj); err != nil {
-		log.Fatalf("Attachment Analyze: %v", err)
-	}
+        if err := prj.D.Attachments[0].Analyze(prj); err != nil {
+                log.Fatalf("Attachment Analyze: %v", err)
+        }
+        // Mark all suggested requirements as active so they can be processed.
+        prj.ActivateRequirementsWhere(func(r PMFS.Requirement) bool { return true })
 
-	for i := range prj.D.Requirements {
-		r := &prj.D.Requirements[i]
-		pass, follow, err := r.Analyse("product_manager", "1")
-		if err != nil {
-			log.Fatalf("Requirement Analyse: %v", err)
-		}
-		fmt.Printf("%s agrees? %v\n", r.Name, pass)
-		if follow != "" {
-			fmt.Printf("  Follow-up: %s\n", follow)
-		}
-		if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
-			log.Fatalf("EvaluateGates: %v", err)
-		}
-		for _, gr := range r.GateResults {
-			fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
-		}
-	}
+        for i := range prj.D.Requirements {
+                r := &prj.D.Requirements[i]
+                if !r.Condition.Active || r.Condition.Deleted {
+                        continue
+                }
+                pass, follow, err := r.Analyse("product_manager", "1")
+                if err != nil {
+                        log.Fatalf("Requirement Analyse: %v", err)
+                }
+                fmt.Printf("%s agrees? %v\n", r.Name, pass)
+                if follow != "" {
+                        fmt.Printf("  Follow-up: %s\n", follow)
+                }
+                if err := r.EvaluateGates([]string{"clarity-form-1"}); err != nil {
+                        log.Fatalf("EvaluateGates: %v", err)
+                }
+                for _, gr := range r.GateResults {
+                        fmt.Printf("  Gate %s passed? %v\n", gr.Gate.ID, gr.Pass)
+                }
+        }
 }
