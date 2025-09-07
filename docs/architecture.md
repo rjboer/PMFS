@@ -20,6 +20,7 @@ flowchart TD
         J --> K[Requirement.QualityControlAI]
         J --> L[Requirement.GenerateDesignAspects]
         L --> M[Design Aspects]
+        G --> L
         M --> N[Generate requirements]
         N --> F
         J --> O[Requirement.SuggestOthers]
