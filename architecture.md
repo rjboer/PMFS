@@ -6,53 +6,27 @@
 
 flowchart TD
 
-&nbsp;   %% --- Attachment ingestion ---
+  %% --- Attachment ingestion ---
+  subgraph Ingestion
+    A[Input files] --> B[AttachmentManager.AddFromInputFolder]
+    B --> C[Project.AddAttachmentFromInput]
+    C --> D[Attachment stored + metadata]
+    D --> E[Attachment.Analyze]
+    E --> F{LLM.AnalyzeAttachment}
+    F --> G[Project.PotentialRequirements]
+  end
 
-&nbsp;   subgraph Ingestion
+  %% --- Requirement lifecycle ---
+  subgraph "Requirement Workflow"
+    G --> H[Project.ActivateRequirement]
+    H --> I[Confirmed Requirements]
+    I --> J[Requirement.QualityControlAI]
+    I --> K[Requirement.GenerateDesignAspects]
+    K --> L[Design Aspects + Templates]
+    I --> M[Requirement.SuggestOthers]
+    M --> G
+  end
 
-&nbsp;       A\[Input files] --> B\[AttachmentManager.AddFromInputFolder]
-
-&nbsp;       B --> C\[Project.AddAttachmentFromInput]
-
-&nbsp;       C --> D\[Attachment stored + metadata]
-
-&nbsp;       D --> E\[Attachment.Analyze]
-
-&nbsp;       E --> F{LLM.AnalyzeAttachment}
-
-&nbsp;       F --> G\[Project.PotentialRequirements]
-
-&nbsp;   end
-
-
-
-&nbsp;   %% --- Requirement lifecycle ---
-
-&nbsp;   subgraph Requirement Workflow
-
-&nbsp;       G --> H\[Project.ActivateRequirement]
-
-&nbsp;       H --> I\[Confirmed Requirements]
-
-&nbsp;       I --> J\[Requirement.QualityControlAI]
-
-&nbsp;       I --> K\[Requirement.GenerateDesignAspects]
-
-&nbsp;       K --> L\[Design Aspects + Templates]
-
-&nbsp;       I --> M\[Requirement.SuggestOthers]
-
-&nbsp;       M --> G
-
-&nbsp;   end
-
-
-
-&nbsp;   %% --- Persistence ---
-
-&nbsp;   G \& I --> N\[Project.Save / Database.Save]
-
-
-
-```
-
+  %% --- Persistence ---
+  G --> N[Project.Save / Database.Save]
+  I --> N
