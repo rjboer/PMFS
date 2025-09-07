@@ -263,15 +263,24 @@ func (da *DesignAspect) EvaluateDesignGates(gateIDs []string) error {
 
 // Deduplicate removes or merges near-identical requirements using the configured LLM
 // for semantic similarity. If the LLM is unavailable, a simple case-insensitive
-// comparison of names and descriptions is used.
-func Deduplicate(reqs []Requirement) []Requirement {
-	if len(reqs) < 2 {
-		return reqs
-	}
+// comparison of names and descriptions is used. Requirements marked as deleted are
+// skipped entirely. If ignoreProposed is true, requirements marked as proposed are
+// also skipped during duplicate comparison (but are still returned).
+func Deduplicate(reqs []Requirement, ignoreProposed bool) []Requirement {
 	var out []Requirement
 	for _, r := range reqs {
+		if r.Condition.Deleted {
+			continue
+		}
+		if ignoreProposed && r.Condition.Proposed {
+			out = append(out, r)
+			continue
+		}
 		merged := false
 		for i := range out {
+			if ignoreProposed && out[i].Condition.Proposed {
+				continue
+			}
 			same := false
 			if DB != nil && DB.LLM != nil {
 				prompt := fmt.Sprintf("Are the following two requirements essentially the same? Respond with 'yes' or 'no'.\n1. %s\n2. %s", out[i].Description, r.Description)
@@ -397,7 +406,7 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 		nr.Condition.AIgenerated = true
 		newReqs = append(newReqs, nr)
 	}
-	prj.D.Requirements = Deduplicate(append(prj.D.Requirements, newReqs...))
+	prj.D.Requirements = Deduplicate(append(prj.D.Requirements, newReqs...), false)
 	att.Analyzed = true
 
 	// Summarize attachment content into an Intelligence entry.
