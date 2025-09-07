@@ -20,7 +20,7 @@ flowchart TD
     LLM --> X1[Create Intelligence & Design Aspects]
     X1 --> X2[Intelligence]
     X1 --> X3[Design Aspects]
-    LLM --> RP[Requirement (Proposed, AIgenerated)]
+    LLM --> RP[Requirement; Proposed, AIgenerated]
     X2 --> RP
     X3 --> X4[Generate requirements based on design aspects]
     X4 --> RP
