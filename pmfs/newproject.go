@@ -15,8 +15,8 @@ type ProjectType = PMFS.ProjectType
 // from the environment, and creates a new project with the provided name under
 // the first product (creating a default product if necessary).
 func NewProject(name string) (*ProjectType, error) {
-	// Ensure the default client uses the API key from the environment.
-	llm.SetClient(gemini.NewRESTClient(os.Getenv("GEMINI_API_KEY")))
+	// Ensure the default client uses the API key and model from the environment/config.
+	llm.SetClient(gemini.NewRESTClient(os.Getenv("GEMINI_API_KEY"), llm.Model()))
 
 	dir := os.Getenv("PMFS_BASEDIR")
 	if dir == "" {
