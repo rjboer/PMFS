@@ -295,6 +295,9 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if prj.D.Requirements[0].AttachmentIndex != 0 {
 		t.Fatalf("attachment index not set: %#v", prj.D.Requirements[0])
 	}
+	if !prj.D.Requirements[0].Condition.Proposed || !prj.D.Requirements[0].Condition.AIgenerated {
+		t.Fatalf("condition flags not set: %#v", prj.D.Requirements[0].Condition)
+	}
 	if len(prj.D.Intelligence) != 1 || prj.D.Intelligence[0].Description != "summary" {
 		t.Fatalf("intelligence not generated: %#v", prj.D.Intelligence)
 	}
