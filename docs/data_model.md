@@ -102,11 +102,11 @@ classDiagram
     ProjectData "1" --> "*" Requirement : requirements
     ProjectData "1" --> "*" Attachment : attachments
     ProjectData "1" --> "*" Intelligence : intelligence
-    ProjectData "1" --> "*" Requirement : potentialRequirements
     Requirement "1" --> "*" ChangeLog : history
     Requirement "1" --> "*" DesignAspect : designAspects
     Requirement "1" --> "*" DesignAspect : recommendedChanges
     Requirement "1" --> "*" Intelligence : intelligenceLink
+    Requirement "1" --> "1" ConditionType : condition
     DesignAspect "1" --> "*" Requirement : templates
     Intelligence "1" --> "*" DesignAspect : designAngles
 ```
