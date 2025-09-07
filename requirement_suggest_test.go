@@ -1,7 +1,6 @@
 package PMFS
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,11 +13,13 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	prj := &ProjectType{ProductID: 1, ID: 1}
 	prj.D.Requirements = []Requirement{{Description: "System shall X"}}
 	r := &prj.D.Requirements[0]
-	mockResp := `[{"name":"R2","description":"Desc2"},{"name":"R3","description":"Desc3"}]`
+	mockResp := `[{"name":"R2","description":"Desc2"},{"name":"Dup","description":"System shall X"}]`
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
-		expected := fmt.Sprintf("Given the requirement %q", r.Description)
-		if strings.Contains(prompt, expected) {
+		if strings.Contains(prompt, "Given the requirement") {
 			return mockResp, nil
+		}
+		if strings.Count(prompt, "System shall X") >= 2 {
+			return "yes", nil
 		}
 		return "no", nil
 	}}
@@ -31,14 +32,17 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SuggestOthers: %v", err)
 	}
-	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
+	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Name != "Dup" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
 	}
-	if len(prj.D.Requirements) != 3 {
-		t.Fatalf("requirements not appended: %#v", prj.D.Requirements)
+	if len(prj.D.Requirements) != 2 {
+		t.Fatalf("requirements not deduplicated: %#v", prj.D.Requirements)
 	}
-	if reqs[0].ParentID != 0 || prj.D.Requirements[1].ParentID != 0 {
+	if prj.D.Requirements[1].ParentID != 0 {
 		t.Fatalf("parent index not set: %#v", prj.D.Requirements[1])
+	}
+	if !prj.D.Requirements[1].Condition.Proposed || prj.D.Requirements[1].Condition.AIgenerated {
+		t.Fatalf("condition flags not set correctly: %#v", prj.D.Requirements[1].Condition)
 	}
 	var dp struct {
 		D ProjectData `toml:"projectdata"`
@@ -47,9 +51,8 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if err := readTOML(path, &dp); err != nil {
 		t.Fatalf("readTOML: %v", err)
 	}
-	if len(dp.D.Requirements) != 3 {
+	if len(dp.D.Requirements) != 2 {
 		t.Fatalf("project.toml not updated: %#v", dp.D.Requirements)
-
 	}
 }
 
