@@ -408,7 +408,6 @@ func importExcel(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Project
 		(*prj).D.Status = data.Status
 		(*prj).D.Priority = data.Priority
 		(*prj).D.Requirements = append((*prj).D.Requirements, data.Requirements...)
-		(*prj).D.PotentialRequirements = append((*prj).D.PotentialRequirements, data.PotentialRequirements...)
 		(*prj).D.Intelligence = append((*prj).D.Intelligence, data.Intelligence...)
 		fmt.Println("Merged Excel data into current project.")
 	}
@@ -494,7 +493,7 @@ func ingestAttachment(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 		return
 	}
 
-	before := len(prj.D.PotentialRequirements)
+	before := len(prj.D.Requirements)
 	if err := att.Analyze(prj); err != nil {
 		log.Printf("Analyze: %v", err)
 		return
@@ -502,7 +501,7 @@ func ingestAttachment(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	if err := PMFS.DB.Save(); err != nil {
 		log.Printf("Save DB: %v", err)
 	}
-	newReqs := prj.D.PotentialRequirements[before:]
+	newReqs := prj.D.Requirements[before:]
 	if len(newReqs) == 0 {
 		fmt.Println("No new requirements suggested.")
 		return

@@ -44,8 +44,7 @@ func TestAnalyseAll(t *testing.T) {
 	}
 	prj := &prd.Projects[0]
 
-	prj.D.Requirements = []Requirement{{ID: 1, Description: "ok"}, {ID: 2, Description: "fail"}}
-	prj.D.PotentialRequirements = []Requirement{{ID: 1, Description: "pot"}}
+	prj.D.Requirements = []Requirement{{ID: 1, Description: "ok"}, {ID: 2, Description: "fail"}, {ID: 3, Description: "pot"}}
 
 	err = prj.AnalyseAll("test", "q1", []string{"completeness-1"})
 	if err == nil || err.Error() != "ask error" {
@@ -55,8 +54,8 @@ func TestAnalyseAll(t *testing.T) {
 	if len(prj.D.Requirements[0].GateResults) != 1 {
 		t.Fatalf("expected gate results for requirement")
 	}
-	if len(prj.D.PotentialRequirements[0].GateResults) != 1 {
-		t.Fatalf("expected gate results for potential requirement")
+	if len(prj.D.Requirements[2].GateResults) != 1 {
+		t.Fatalf("expected gate results for third requirement")
 	}
 
 	var prjReload ProjectType
@@ -68,7 +67,7 @@ func TestAnalyseAll(t *testing.T) {
 	if len(prjReload.D.Requirements[0].GateResults) != 1 {
 		t.Fatalf("gate results not persisted")
 	}
-	if len(prjReload.D.PotentialRequirements[0].GateResults) != 1 {
-		t.Fatalf("potential gate results not persisted")
+	if len(prjReload.D.Requirements[2].GateResults) != 1 {
+		t.Fatalf("gate results for third requirement not persisted")
 	}
 }

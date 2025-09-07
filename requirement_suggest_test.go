@@ -34,11 +34,11 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
 	}
-	if len(prj.D.PotentialRequirements) != 2 {
-		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	if len(prj.D.Requirements) != 3 {
+		t.Fatalf("requirements not appended: %#v", prj.D.Requirements)
 	}
-	if reqs[0].ParentID != 0 || prj.D.PotentialRequirements[0].ParentID != 0 {
-		t.Fatalf("parent index not set: %#v", prj.D.PotentialRequirements[0])
+	if reqs[0].ParentID != 0 || prj.D.Requirements[1].ParentID != 0 {
+		t.Fatalf("parent index not set: %#v", prj.D.Requirements[1])
 	}
 	var dp struct {
 		D ProjectData `toml:"projectdata"`
@@ -47,8 +47,8 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if err := readTOML(path, &dp); err != nil {
 		t.Fatalf("readTOML: %v", err)
 	}
-	if len(dp.D.PotentialRequirements) != 2 {
-		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+	if len(dp.D.Requirements) != 3 {
+		t.Fatalf("project.toml not updated: %#v", dp.D.Requirements)
 
 	}
 }
@@ -95,11 +95,11 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	if len(reqs) != 2 || reqs[0].Name != "R2" || reqs[1].Description != "Desc3" {
 		t.Fatalf("unexpected reqs: %#v", reqs)
 	}
-	if len(prj.D.PotentialRequirements) != 2 {
-		t.Fatalf("requirements not appended: %#v", prj.D.PotentialRequirements)
+	if len(prj.D.Requirements) != 3 {
+		t.Fatalf("requirements not appended: %#v", prj.D.Requirements)
 	}
-	if prj.D.PotentialRequirements[0].ParentID != 0 {
-		t.Fatalf("parent index not set: %#v", prj.D.PotentialRequirements[0])
+	if prj.D.Requirements[1].ParentID != 0 {
+		t.Fatalf("parent index not set: %#v", prj.D.Requirements[1])
 	}
 
 	var dp2 struct {
@@ -109,8 +109,8 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	if err := readTOML(path, &dp2); err != nil {
 		t.Fatalf("readTOML: %v", err)
 	}
-	if len(dp2.D.PotentialRequirements) != 2 {
-		t.Fatalf("project.toml not updated: %#v", dp2.D.PotentialRequirements)
+	if len(dp2.D.Requirements) != 3 {
+		t.Fatalf("project.toml not updated: %#v", dp2.D.Requirements)
 	}
 
 }

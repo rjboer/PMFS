@@ -148,12 +148,18 @@ type ProjectData struct {
 	Intelligence []Intelligence `json:"intelligence" toml:"intelligence"`
 	// IntelligenceLinks connect extracted intelligence with confirmed requirements.
 	//	IntelligenceLinks []IntelligenceLink `json:"intelligence_links" toml:"intelligence_links"`
-	// PotentialRequirements are proposed requirements derived from intelligence analysis.
-	PotentialRequirements []Requirement `json:"potential_requirements" toml:"potential_requirements"`
 	// RequirementRelations holds the LLM-scored relationships between requirements.
 	//	RequirementRelations  []RequirementRelation `json:"requirement_relations" toml:"requirement_relations"`
 	//	RequirementCategories []string              `json:"requirement_Categories" toml:"requirement_Categories"`
 	FixedCategories bool `json:"requirement_FixedCategories" toml:"requirement_FixedCategories"`
+}
+
+// ConditionType represents the state of a requirement.
+type ConditionType struct {
+	Proposed    bool `json:"proposed" toml:"proposed"`
+	AIgenerated bool `json:"aigenerated" toml:"aigenerated"`
+	Active      bool `json:"active" toml:"active"`
+	Deleted     bool `json:"deleted" toml:"deleted"`
 }
 
 // Requirement represents a confirmed requirement with detailed metadata.
@@ -175,6 +181,7 @@ type Requirement struct {
 	GateResults        []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
 	RecommendedChanges []DesignAspect  `json:"RequirementImprovements" toml:"requirementdesignaspects"`
 	DesignAspects      []DesignAspect  `json:"design_aspects" toml:"design_aspects"`
+	Condition          ConditionType   `json:"condition" toml:"condition"`
 	// Optional: Tags can help with flexible categorization or filtering.
 	Tags []string `json:"tags,omitempty" toml:"tags"`
 }
@@ -361,8 +368,8 @@ func (att *Attachment) Analyze(prj *ProjectType) error {
 }
 
 // GenerateRequirements analyzes the attachment using the provided heuristic
-// strategy and appends any discovered requirements to the project's potential
-// requirements slice. An empty strategy falls back to the default LLM-based
+// strategy and appends any discovered requirements to the project's requirement
+// slice. An empty strategy falls back to the default LLM-based
 // analysis (currently Gemini).
 func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) error {
 	if strategy == "" {
@@ -386,9 +393,11 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	for _, r := range reqs {
 		nr := FromGemini(r)
 		nr.AttachmentIndex = attIdx
+		nr.Condition.Proposed = true
+		nr.Condition.AIgenerated = true
 		newReqs = append(newReqs, nr)
 	}
-	prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, newReqs...))
+	prj.D.Requirements = Deduplicate(append(prj.D.Requirements, newReqs...))
 	att.Analyzed = true
 
 	// Summarize attachment content into an Intelligence entry.
@@ -996,28 +1005,24 @@ func (prj *ProjectType) AddAttachmentFromText(text string) (Attachment, error) {
 	return *ptr, nil
 }
 
-// ActivateRequirement moves a potential requirement into the confirmed requirements list.
+// ActivateRequirement marks a requirement as active.
 func (prj *ProjectType) ActivateRequirement(idx int) {
-	if idx < 0 || idx >= len(prj.D.PotentialRequirements) {
+	if idx < 0 || idx >= len(prj.D.Requirements) {
 		return
 	}
-	r := prj.D.PotentialRequirements[idx]
-	prj.D.PotentialRequirements = append(prj.D.PotentialRequirements[:idx], prj.D.PotentialRequirements[idx+1:]...)
-	r.ID = len(prj.D.Requirements) + 1
-	prj.D.Requirements = append(prj.D.Requirements, r)
+	prj.D.Requirements[idx].Condition.Active = true
+	prj.D.Requirements[idx].Condition.Proposed = false
 	_ = prj.Save()
 }
 
-// ActivateAllPotential promotes all potential requirements to confirmed requirements.
+// ActivateAllPotential marks all proposed requirements as active.
 func (prj *ProjectType) ActivateAllPotential() {
-	if len(prj.D.PotentialRequirements) == 0 {
-		return
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].Condition.Proposed {
+			prj.D.Requirements[i].Condition.Proposed = false
+			prj.D.Requirements[i].Condition.Active = true
+		}
 	}
-	for _, r := range prj.D.PotentialRequirements {
-		r.ID = len(prj.D.Requirements) + 1
-		prj.D.Requirements = append(prj.D.Requirements, r)
-	}
-	prj.D.PotentialRequirements = nil
 	_ = prj.Save()
 }
 
@@ -1049,7 +1054,7 @@ func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs [
 	return nil
 }
 
-// AnalyseAll runs QualityControlAI on both confirmed and potential requirements.
+// AnalyseAll runs QualityControlAI on all requirements.
 // It processes all requirements, returning the first error encountered, and
 // persists any gate evaluation results.
 func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) error {
@@ -1057,12 +1062,6 @@ func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) er
 
 	for i := range prj.D.Requirements {
 		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
-			firstErr = err
-		}
-	}
-
-	for i := range prj.D.PotentialRequirements {
-		if _, _, err := prj.D.PotentialRequirements[i].QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}

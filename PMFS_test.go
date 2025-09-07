@@ -289,11 +289,11 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if !ptr.Analyzed {
 		t.Fatalf("attachment not marked analyzed")
 	}
-	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
-		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
+	if len(prj.D.Requirements) != 1 || prj.D.Requirements[0].Name != "R1" {
+		t.Fatalf("unexpected requirements: %#v", prj.D.Requirements)
 	}
-	if prj.D.PotentialRequirements[0].AttachmentIndex != 0 {
-		t.Fatalf("attachment index not set: %#v", prj.D.PotentialRequirements[0])
+	if prj.D.Requirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not set: %#v", prj.D.Requirements[0])
 	}
 	if len(prj.D.Intelligence) != 1 || prj.D.Intelligence[0].Description != "summary" {
 		t.Fatalf("intelligence not generated: %#v", prj.D.Intelligence)
@@ -309,11 +309,11 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if err := readTOML(p, &dp); err != nil {
 		t.Fatalf("readTOML: %v", err)
 	}
-	if len(dp.D.PotentialRequirements) != 1 {
-		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
+	if len(dp.D.Requirements) != 1 {
+		t.Fatalf("project.toml not updated: %#v", dp.D.Requirements)
 	}
-	if dp.D.PotentialRequirements[0].AttachmentIndex != 0 {
-		t.Fatalf("attachment index not persisted: %#v", dp.D.PotentialRequirements[0])
+	if dp.D.Requirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not persisted: %#v", dp.D.Requirements[0])
 	}
 	if len(dp.D.Intelligence) != 1 {
 		t.Fatalf("intelligence not persisted: %#v", dp.D.Intelligence)
@@ -394,28 +394,28 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if !att.Analyzed {
 		t.Fatalf("attachment not analyzed")
 	}
-	if len(prj.D.PotentialRequirements) != len(mockReqs) {
-		t.Fatalf("expected %d potential requirements, got %d", len(mockReqs), len(prj.D.PotentialRequirements))
+	if len(prj.D.Requirements) != len(mockReqs) {
+		t.Fatalf("expected %d requirements, got %d", len(mockReqs), len(prj.D.Requirements))
 	}
-	if prj.D.PotentialRequirements[0].Name != mockReqs[0].Name {
+	if prj.D.Requirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not appended")
 	}
-	if prj.D.PotentialRequirements[0].AttachmentIndex != 0 {
-		t.Fatalf("attachment index not set: %#v", prj.D.PotentialRequirements[0])
+	if prj.D.Requirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not set: %#v", prj.D.Requirements[0])
 	}
 	// ensure requirements persisted to disk
 	prjReload := ProjectType{ID: prj.ID, ProductID: prj.ProductID}
 	if err := prjReload.Load(); err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(prjReload.D.PotentialRequirements) != len(mockReqs) {
-		t.Fatalf("expected %d persisted requirements, got %d", len(mockReqs), len(prjReload.D.PotentialRequirements))
+	if len(prjReload.D.Requirements) != len(mockReqs) {
+		t.Fatalf("expected %d persisted requirements, got %d", len(mockReqs), len(prjReload.D.Requirements))
 	}
-	if prjReload.D.PotentialRequirements[0].Name != mockReqs[0].Name {
-		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	if prjReload.D.Requirements[0].Name != mockReqs[0].Name {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.Requirements)
 	}
-	if prjReload.D.PotentialRequirements[0].AttachmentIndex != 0 {
-		t.Fatalf("attachment index not persisted: %#v", prjReload.D.PotentialRequirements[0])
+	if prjReload.D.Requirements[0].AttachmentIndex != 0 {
+		t.Fatalf("attachment index not persisted: %#v", prjReload.D.Requirements[0])
 	}
 }
 
@@ -478,7 +478,7 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if !att.Analyzed {
 		t.Fatalf("attachment not analyzed")
 	}
-	if len(prj.D.PotentialRequirements) == 0 {
+	if len(prj.D.Requirements) == 0 {
 		t.Fatalf("no requirements returned")
 	}
 
@@ -486,11 +486,11 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 	if err := prjReload.Load(); err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(prjReload.D.PotentialRequirements) == 0 {
-		t.Fatalf("requirements not persisted: %#v", prjReload.D.PotentialRequirements)
+	if len(prjReload.D.Requirements) == 0 {
+		t.Fatalf("requirements not persisted: %#v", prjReload.D.Requirements)
 	}
-	if prjReload.D.PotentialRequirements[0].Name == "" {
-		t.Fatalf("empty requirement name: %#v", prjReload.D.PotentialRequirements[0])
+	if prjReload.D.Requirements[0].Name == "" {
+		t.Fatalf("empty requirement name: %#v", prjReload.D.Requirements[0])
 	}
 }
 
