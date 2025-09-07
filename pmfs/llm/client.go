@@ -13,9 +13,12 @@ type Client interface {
 }
 
 var (
-	// DefaultClient is the package's default LLM client.
-	DefaultClient Client = gemini.NewRESTClient(os.Getenv("GEMINI_API_KEY"))
-	client        Client = DefaultClient
+	// DefaultClient is the package's default LLM client wrapped with a rate limiter.
+	DefaultClient Client = NewRateLimitedClient(
+		gemini.NewRESTClient(os.Getenv("GEMINI_API_KEY"), config.Model),
+		config.RequestsPerSecond,
+	)
+	client Client = DefaultClient
 )
 
 // SetClient replaces the package's client, returning the previous one.

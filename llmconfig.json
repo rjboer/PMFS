@@ -1,0 +1,4 @@
+{
+  "model": "gemini-1.5-flash-latest",
+  "requests_per_second": 3
+}

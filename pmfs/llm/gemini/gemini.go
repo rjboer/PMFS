@@ -104,12 +104,15 @@ func Ask(prompt string) (string, error) {
 type RESTClient struct {
 	HTTPClient *http.Client
 	APIKey     string
+	Model      string
 }
 
-// NewRESTClient returns a RESTClient configured with the provided API key.
+const DefaultModel = "gemini-1.5-flash-latest"
+
+// NewRESTClient returns a RESTClient configured with the provided API key and model.
 // The HTTP client will be lazily initialized on first use.
-func NewRESTClient(apiKey string) Client {
-	return &RESTClient{APIKey: apiKey}
+func NewRESTClient(apiKey, model string) Client {
+	return &RESTClient{APIKey: apiKey, Model: model}
 }
 
 func (c *RESTClient) init() error {
@@ -121,6 +124,9 @@ func (c *RESTClient) init() error {
 		if c.APIKey == "" {
 			return errors.New("GEMINI_API_KEY not set")
 		}
+	}
+	if c.Model == "" {
+		c.Model = DefaultModel
 	}
 	return nil
 }
@@ -273,7 +279,7 @@ func (c *RESTClient) generate(body map[string]any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=%s", c.APIKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", c.Model, c.APIKey)
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
 		return "", err
