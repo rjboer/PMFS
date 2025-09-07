@@ -1005,20 +1005,24 @@ func (prj *ProjectType) AddAttachmentFromText(text string) (Attachment, error) {
 	return *ptr, nil
 }
 
-// ActivateRequirement marks a requirement as active.
-func (prj *ProjectType) ActivateRequirement(idx int) {
-	if idx < 0 || idx >= len(prj.D.Requirements) {
-		return
+// ActivateRequirementByID activates the requirement with the given ID.
+// It sets Proposed to false and Active to true.
+func (prj *ProjectType) ActivateRequirementByID(id int) {
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID == id {
+			prj.D.Requirements[i].Condition.Proposed = false
+			prj.D.Requirements[i].Condition.Active = true
+			_ = prj.Save()
+			return
+		}
 	}
-	prj.D.Requirements[idx].Condition.Active = true
-	prj.D.Requirements[idx].Condition.Proposed = false
-	_ = prj.Save()
 }
 
-// ActivateAllPotential marks all proposed requirements as active.
-func (prj *ProjectType) ActivateAllPotential() {
+// ActivateRequirementsWhere activates all requirements for which pred returns true.
+// It toggles Proposed to false and Active to true for matches.
+func (prj *ProjectType) ActivateRequirementsWhere(pred func(Requirement) bool) {
 	for i := range prj.D.Requirements {
-		if prj.D.Requirements[i].Condition.Proposed {
+		if pred(prj.D.Requirements[i]) {
 			prj.D.Requirements[i].Condition.Proposed = false
 			prj.D.Requirements[i].Condition.Active = true
 		}
