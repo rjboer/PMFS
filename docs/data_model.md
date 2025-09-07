@@ -33,7 +33,6 @@ classDiagram
         +[]Requirement Requirements
         +[]Attachment Attachments
         +[]Intelligence Intelligence
-        +[]Requirement PotentialRequirements
         +bool FixedCategories
     }
 
@@ -54,6 +53,7 @@ classDiagram
         +[]DesignAspect DesignAspects
         +[]DesignAspect RecommendedChanges
         +[]gates.Result GateResults
+        +ConditionType Condition
         +[]Intelligence IntelligenceLink
         +[]string Tags
     }
@@ -78,6 +78,13 @@ classDiagram
         +time.Time Timestamp
         +string User
         +string Comment
+    }
+
+    class ConditionType {
+        +bool Proposed
+        +bool AIgenerated
+        +bool Active
+        +bool Deleted
     }
 
     class Intelligence {

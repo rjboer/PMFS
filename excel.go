@@ -46,7 +46,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.Requirements) > 0 {
 		sheet := "Requirements"
 		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags"}
+		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "Active", "Deleted"}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -65,38 +65,10 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.AttachmentIndex,
 				req.Category,
 				strings.Join(req.Tags, ","),
-			}
-			cell := fmt.Sprintf("A%d", i+2)
-			if err := f.SetSheetRow(sheet, cell, &row); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Potential requirements sheet
-	if len(p.D.PotentialRequirements) > 0 {
-		sheet := "PotentialRequirements"
-		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Enable"}
-		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
-			return err
-		}
-		for i, req := range p.D.PotentialRequirements {
-			row := []interface{}{
-				req.ID,
-				req.Name,
-				req.Description,
-				req.Priority,
-				req.Level,
-				req.User,
-				req.Status,
-				req.CreatedAt.Format(time.RFC3339),
-				req.UpdatedAt.Format(time.RFC3339),
-				req.ParentID,
-				req.AttachmentIndex,
-				req.Category,
-				strings.Join(req.Tags, ","),
-				false,
+				req.Condition.Proposed,
+				req.Condition.AIgenerated,
+				req.Condition.Active,
+				req.Condition.Deleted,
 			}
 			cell := fmt.Sprintf("A%d", i+2)
 			if err := f.SetSheetRow(sheet, cell, &row); err != nil {
@@ -137,9 +109,8 @@ func (p *ProjectType) ExportExcel(path string) error {
 
 // ImportProjectExcel reads an Excel workbook and returns populated ProjectData.
 // It expects a sheet named "Project" with key/value pairs for basic metadata
-// and a "Requirements" sheet listing confirmed requirements. Additional
-// optional sheets like "PotentialRequirements" and "Intelligence" are imported
-// when present. Missing optional sheets are ignored.
+// and a "Requirements" sheet listing requirements. An optional "Intelligence"
+// sheet is imported when present. Missing optional sheets are ignored.
 func ImportProjectExcel(path string) (*ProjectData, error) {
 	f, err := excelize.OpenFile(path)
 	if err != nil {
@@ -224,57 +195,23 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 		if row[12] != "" {
 			req.Tags = strings.Split(row[12], ",")
 		}
-		pd.Requirements = append(pd.Requirements, req)
-	}
-
-	// Potential requirements (optional)
-	if prRows, err := f.GetRows("PotentialRequirements"); err == nil {
-		for _, row := range prRows[1:] {
-			if len(row) < 13 {
-				continue
-			}
-			var req Requirement
-			if req.ID, err = strconv.Atoi(row[0]); err != nil {
-				return nil, err
-			}
-			req.Name = row[1]
-			req.Description = row[2]
-			if req.Priority, err = strconv.Atoi(row[3]); err != nil {
-				return nil, err
-			}
-			if req.Level, err = strconv.Atoi(row[4]); err != nil {
-				return nil, err
-			}
-			req.User = row[5]
-			req.Status = row[6]
-			if req.CreatedAt, err = time.Parse(time.RFC3339, row[7]); err != nil {
-				return nil, err
-			}
-			if req.UpdatedAt, err = time.Parse(time.RFC3339, row[8]); err != nil {
-				return nil, err
-			}
-			if req.ParentID, err = strconv.Atoi(row[9]); err != nil {
-				return nil, err
-			}
-			if req.AttachmentIndex, err = strconv.Atoi(row[10]); err != nil {
-				return nil, err
-			}
-			req.Category = row[11]
-			if row[12] != "" {
-				req.Tags = strings.Split(row[12], ",")
-			}
-			enabled := false
-			if len(row) > 13 {
-				val := strings.ToLower(row[13])
-				enabled = val == "true" || val == "1" || val == "yes"
-			}
-			if enabled {
-				pd.Requirements = append(pd.Requirements, req)
-			} else {
-				pd.PotentialRequirements = append(pd.PotentialRequirements, req)
-			}
+		if len(row) > 13 {
+			val := strings.ToLower(row[13])
+			req.Condition.Proposed = val == "true" || val == "1" || val == "yes"
 		}
-		pd.PotentialRequirements = Deduplicate(pd.PotentialRequirements)
+		if len(row) > 14 {
+			val := strings.ToLower(row[14])
+			req.Condition.AIgenerated = val == "true" || val == "1" || val == "yes"
+		}
+		if len(row) > 15 {
+			val := strings.ToLower(row[15])
+			req.Condition.Active = val == "true" || val == "1" || val == "yes"
+		}
+		if len(row) > 16 {
+			val := strings.ToLower(row[16])
+			req.Condition.Deleted = val == "true" || val == "1" || val == "yes"
+		}
+		pd.Requirements = append(pd.Requirements, req)
 	}
 
 	// Intelligence (optional)

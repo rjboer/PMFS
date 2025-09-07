@@ -19,7 +19,7 @@ flowchart TD
     LLM --> X1[Create Intelligence & Design Aspects]
     X1 --> X2[Intelligence]
     X1 --> X3[Design Aspects]
-    LLM --> G[Project.PotentialRequirements]
+    LLM --> G[Project.Requirements]
     X2 --> G
     X3 --> X4[Generate requirements based on design aspects]
     X4 --> G

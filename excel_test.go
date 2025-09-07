@@ -9,12 +9,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-func TestExportPotentialRequirementsEnableColumn(t *testing.T) {
-	prj := &ProjectType{D: ProjectData{PotentialRequirements: []Requirement{{
+func TestExportRequirementsConditionColumns(t *testing.T) {
+	prj := &ProjectType{D: ProjectData{Requirements: []Requirement{{
 		ID:        1,
-		Name:      "Pot",
+		Name:      "Req",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		Condition: ConditionType{Proposed: true},
 	}}}}
 
 	tmp, err := os.CreateTemp("", "proj-*.xlsx")
@@ -34,22 +35,22 @@ func TestExportPotentialRequirementsEnableColumn(t *testing.T) {
 	}
 	defer f.Close()
 
-	rows, err := f.GetRows("PotentialRequirements")
+	rows, err := f.GetRows("Requirements")
 	if err != nil {
 		t.Fatalf("GetRows: %v", err)
 	}
-	if len(rows) == 0 || len(rows[0]) < 14 {
-		t.Fatalf("expected Enable column in header, got %v", rows)
+	if len(rows) == 0 || len(rows[0]) < 17 {
+		t.Fatalf("expected condition columns in header, got %v", rows)
 	}
-	if rows[0][13] != "Enable" {
+	if rows[0][13] != "Proposed" || rows[0][14] != "AIgenerated" || rows[0][15] != "Active" || rows[0][16] != "Deleted" {
 		t.Fatalf("unexpected header %v", rows[0])
 	}
-	if len(rows) < 2 || len(rows[1]) < 14 || !strings.EqualFold(rows[1][13], "false") {
-		t.Fatalf("expected default false in Enable column, got %v", rows[1])
+	if len(rows) < 2 || len(rows[1]) < 17 || !strings.EqualFold(rows[1][13], "true") {
+		t.Fatalf("expected proposed true in row, got %v", rows[1])
 	}
 }
 
-func TestImportPotentialRequirementsPromotion(t *testing.T) {
+func TestImportRequirements(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -63,18 +64,12 @@ func TestImportPotentialRequirementsPromotion(t *testing.T) {
 	f.SetSheetName("Sheet1", "Project")
 
 	f.NewSheet("Requirements")
-	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags"}
+	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "Active", "Deleted"}
 	if err := f.SetSheetRow("Requirements", "A1", &reqHeader); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
-
-	f.NewSheet("PotentialRequirements")
-	prHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Enable"}
-	if err := f.SetSheetRow("PotentialRequirements", "A1", &prHeader); err != nil {
-		t.Fatalf("SetSheetRow: %v", err)
-	}
-	row := []interface{}{1, "Pot", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true"}
-	if err := f.SetSheetRow("PotentialRequirements", "A2", &row); err != nil {
+	row := []interface{}{1, "Req", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true", "false", "false", "false"}
+	if err := f.SetSheetRow("Requirements", "A2", &row); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
 
@@ -94,9 +89,9 @@ func TestImportPotentialRequirementsPromotion(t *testing.T) {
 		t.Fatalf("ImportProjectExcel: %v", err)
 	}
 	if len(pd.Requirements) != 1 {
-		t.Fatalf("expected requirement promoted, got %d", len(pd.Requirements))
+		t.Fatalf("expected one requirement, got %d", len(pd.Requirements))
 	}
-	if len(pd.PotentialRequirements) != 0 {
-		t.Fatalf("expected no potential requirements, got %d", len(pd.PotentialRequirements))
+	if !pd.Requirements[0].Condition.Proposed {
+		t.Fatalf("condition not imported: %#v", pd.Requirements[0].Condition)
 	}
 }

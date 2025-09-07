@@ -21,15 +21,15 @@ func main() {
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
-	// Analyze a document to extract potential requirements.
+	// Analyze a document to extract requirements.
 	if err := att.Analyze(&prj); err != nil {
 		log.Fatalf("analyze: %v", err)
 	}
-	if len(prj.D.PotentialRequirements) == 0 {
+	if len(prj.D.Requirements) == 0 {
 		log.Fatal("no requirements returned")
 	}
 
-	r := &prj.D.PotentialRequirements[0]
+	r := &prj.D.Requirements[0]
 
 	fmt.Printf("Requirement: %s - %s\n", r.Name, r.Description)
 

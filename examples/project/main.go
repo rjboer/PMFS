@@ -70,8 +70,8 @@ func main() {
 		log.Fatalf("Attachment Analyze: %v", err)
 	}
 
-	for i := range prj.D.PotentialRequirements {
-		r := &prj.D.PotentialRequirements[i]
+	for i := range prj.D.Requirements {
+		r := &prj.D.Requirements[i]
 		pass, follow, err := r.Analyse("product_manager", "1")
 		if err != nil {
 			log.Fatalf("Requirement Analyse: %v", err)

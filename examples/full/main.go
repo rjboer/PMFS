@@ -22,19 +22,19 @@ func main() {
 	prj := PMFS.ProjectType{ProductID: 0, ID: 0}
 	att := PMFS.Attachment{RelPath: "../../../testdata/spec1.txt"}
 
-	// Analyze a document to extract potential requirements.
+	// Analyze a document to extract requirements.
 	if err := att.Analyze(&prj); err != nil {
 		log.Fatalf("analyze: %v", err)
 	}
-	if len(prj.D.PotentialRequirements) == 0 {
+	if len(prj.D.Requirements) == 0 {
 		log.Fatal("no requirements returned")
 	}
 
 	roles := []string{"product_manager", "qa_lead", "security_privacy_officer"}
 
 	// Ask each role about every requirement and evaluate quality gates.
-	for i := range prj.D.PotentialRequirements {
-		r := &prj.D.PotentialRequirements[i]
+	for i := range prj.D.Requirements {
+		r := &prj.D.Requirements[i]
 		fmt.Printf("Requirement %d: %s - %s\n", i+1, r.Name, r.Description)
 		id := strconv.Itoa(i + 1)
 		for _, role := range roles {
