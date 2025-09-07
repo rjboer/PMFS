@@ -27,7 +27,7 @@ flowchart TD
 
   %% --- Requirement lifecycle ---
   subgraph "Requirement Workflow, assume we have a list of requirements"
-    G --> H[Project.ActivateRequirement]
+    G --> H[Project.ActivateRequirementByID]
     H --> I[list of Requirements]
     I --> J[Requirement.QualityControlAI]
     J --> LLM
