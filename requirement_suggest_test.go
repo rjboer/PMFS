@@ -15,10 +15,10 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	mockResp := `[{"name":"R2","description":"Desc2"},{"name":"R3","description":"Desc3"}]`
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		expected := fmt.Sprintf("Given the requirement %q", r.Description)
-		if !strings.Contains(prompt, expected) {
-			t.Fatalf("unexpected prompt: %s", prompt)
+		if strings.Contains(prompt, expected) {
+			return mockResp, nil
 		}
-		return mockResp, nil
+		return "no", nil
 	}}
 	dir := t.TempDir()
 	if _, err := LoadSetup(dir); err != nil {
@@ -71,7 +71,10 @@ func TestRequirementSuggestOthersCodeFence(t *testing.T) {
 	r := Requirement{Description: "System shall X"}
 	mockResp := "Sure!\n```json\n[{\"name\":\"R2\",\"description\":\"Desc2\"},{\"name\":\"R3\",\"description\":\"Desc3\"}]\n```"
 	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
-		return mockResp, nil
+		if strings.Contains(prompt, "Given the requirement") {
+			return mockResp, nil
+		}
+		return "no", nil
 	}}
 	dir := t.TempDir()
 	if _, err := LoadSetup(dir); err != nil {

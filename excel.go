@@ -256,6 +256,7 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 			}
 			pd.PotentialRequirements = append(pd.PotentialRequirements, req)
 		}
+		pd.PotentialRequirements = Deduplicate(pd.PotentialRequirements)
 	}
 
 	// Intelligence (optional)

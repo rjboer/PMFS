@@ -253,6 +253,47 @@ func (da *DesignAspect) EvaluateDesignGates(gateIDs []string) error {
 	return nil
 }
 
+// Deduplicate removes or merges near-identical requirements using the configured LLM
+// for semantic similarity. If the LLM is unavailable, a simple case-insensitive
+// comparison of names and descriptions is used.
+func Deduplicate(reqs []Requirement) []Requirement {
+	if len(reqs) < 2 {
+		return reqs
+	}
+	var out []Requirement
+	for _, r := range reqs {
+		merged := false
+		for i := range out {
+			same := false
+			if DB != nil && DB.LLM != nil {
+				prompt := fmt.Sprintf("Are the following two requirements essentially the same? Respond with 'yes' or 'no'.\n1. %s\n2. %s", out[i].Description, r.Description)
+				if resp, err := DB.LLM.Ask(prompt); err == nil {
+					resp = strings.ToLower(strings.TrimSpace(resp))
+					if strings.HasPrefix(resp, "yes") {
+						same = true
+					}
+				}
+			} else {
+				same = strings.EqualFold(out[i].Description, r.Description) || strings.EqualFold(out[i].Name, r.Name)
+			}
+			if same {
+				if out[i].Description == "" && r.Description != "" {
+					out[i].Description = r.Description
+				}
+				if out[i].Name == "" && r.Name != "" {
+					out[i].Name = r.Name
+				}
+				merged = true
+				break
+			}
+		}
+		if !merged {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
 // parseLLMJSON extracts the first valid JSON array from the LLM response.
 // It supports Markdown fenced code blocks and returns an error if no JSON
 // array can be located.
@@ -333,9 +374,11 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	if err != nil {
 		return err
 	}
+	var newReqs []Requirement
 	for _, r := range reqs {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, FromGemini(r))
+		newReqs = append(newReqs, FromGemini(r))
 	}
+	prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, newReqs...))
 	att.Analyzed = true
 
 	// Summarize attachment content into an Intelligence entry.
