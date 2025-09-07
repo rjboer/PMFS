@@ -29,6 +29,9 @@ flowchart TD
     N --> G
     I --> M[Requirement.SuggestOthers]
     M --> G
+    G --> P[Deduplication of requirements]
+    H --> P
+
   end
 
   %% --- Persistence ---
