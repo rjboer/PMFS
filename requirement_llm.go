@@ -39,7 +39,7 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 		for i := range reqs {
 			reqs[i].Condition.Proposed = true
 		}
-		prj.D.Requirements = Deduplicate(append(prj.D.Requirements, reqs...))
+		prj.D.Requirements = Deduplicate(append(prj.D.Requirements, reqs...), false)
 		if err := prj.Save(); err != nil {
 			return nil, err
 		}

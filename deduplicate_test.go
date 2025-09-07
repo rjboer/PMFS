@@ -15,9 +15,23 @@ func TestDeduplicate(t *testing.T) {
 	DB.LLM = gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
 		return "yes", nil
 	}}
-	reqs := []Requirement{{Name: "R1", Description: "same"}, {Name: "R2", Description: "same"}}
-	out := Deduplicate(reqs)
+	reqs := []Requirement{
+		{Name: "R1", Description: "same"},
+		{Name: "R2", Description: "same"},
+		{Name: "R3", Description: "same", Condition: ConditionType{Proposed: true}},
+		{Name: "R4", Description: "other", Condition: ConditionType{Deleted: true}},
+	}
+
+	out := Deduplicate(reqs, true)
+	if len(out) != 2 {
+		t.Fatalf("expected 2 requirements when ignoring proposed, got %d", len(out))
+	}
+	if !out[1].Condition.Proposed {
+		t.Fatalf("expected proposed requirement to remain")
+	}
+
+	out = Deduplicate(reqs, false)
 	if len(out) != 1 {
-		t.Fatalf("expected 1 requirement, got %d", len(out))
+		t.Fatalf("expected 1 requirement when including proposed, got %d", len(out))
 	}
 }
