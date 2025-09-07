@@ -236,57 +236,6 @@ func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string
 	return pass, ans, nil
 }
 
-// SuggestOthers asks the client for related potential requirements based o
-// this requirement's description. Any returned requirements are appended to the
-// provided project and persisted immediately. The appended requirements are also
-// returned to the caller.
-func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
-
-	prompt := fmt.Sprintf("Given the requirement %q, list other potential requirements (JSON array with `name` and `description`).", r.Description)
-	resp, err := DB.LLM.Ask(prompt)
-	if err != nil {
-		return nil, err
-	}
-	raw, err := parseLLMJSON(resp)
-	if err != nil {
-		return nil, err
-	}
-	var reqs []Requirement
-	if err := json.Unmarshal(raw, &reqs); err != nil {
-		return nil, err
-	}
-
-	if prj != nil {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, reqs...)
-		if err := prj.Save(); err != nil {
-			return nil, err
-		}
-
-	}
-	return reqs, nil
-}
-
-// GenerateDesignAspects asks the client for design improvement topics based on
-// the requirement's description. Returned aspects are appended to the
-// requirement and also returned to the caller.
-func (r *Requirement) GenerateDesignAspects() ([]DesignAspect, error) {
-	prompt := fmt.Sprintf("Given the requirement %q, list design improvement topics (JSON array with `name` and `description`).", r.Description)
-	resp, err := DB.LLM.Ask(prompt)
-	if err != nil {
-		return nil, err
-	}
-	raw, err := parseLLMJSON(resp)
-	if err != nil {
-		return nil, err
-	}
-	var aspects []DesignAspect
-	if err := json.Unmarshal(raw, &aspects); err != nil {
-		return nil, err
-	}
-	r.DesignAspects = append(r.DesignAspects, aspects...)
-	return aspects, nil
-}
-
 // parseLLMJSON extracts the first valid JSON array from the LLM response.
 // It supports Markdown fenced code blocks and returns an error if no JSON
 // array can be located.
@@ -371,8 +320,49 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, FromGemini(r))
 	}
 	att.Analyzed = true
-	// Persist newly added potential requirements immediately.
 
+	// Summarize attachment content into an Intelligence entry.
+	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
+	if i := strings.Index(mt, ";"); i >= 0 {
+		mt = mt[:i]
+	}
+	var content string
+	if strings.HasPrefix(mt, "text/") {
+		b, err := os.ReadFile(full)
+		if err != nil {
+			return err
+		}
+		content = string(b)
+	} else {
+		var sb strings.Builder
+		for _, r := range reqs {
+			sb.WriteString(r.Name)
+			sb.WriteString(": ")
+			sb.WriteString(r.Description)
+			sb.WriteString("\n")
+		}
+		content = sb.String()
+	}
+	summary, err := summarizeContent(content)
+	if err != nil {
+		return err
+	}
+	intel := Intelligence{
+		ID:          len(prj.D.Intelligence) + 1,
+		Filepath:    att.RelPath,
+		Content:     content,
+		Description: summary,
+		ExtractedAt: time.Now(),
+	}
+
+	aspects, err := designAspectsFromSummary(summary)
+	if err != nil {
+		return err
+	}
+	intel.DesignAngles = append(intel.DesignAngles, aspects...)
+	prj.D.Intelligence = append(prj.D.Intelligence, intel)
+
+	// Persist newly added potential requirements and intelligence immediately.
 	if err := prj.Save(); err != nil {
 		return err
 	}
