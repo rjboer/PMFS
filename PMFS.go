@@ -284,6 +284,113 @@ func parseLLMJSON(resp string) ([]byte, error) {
 	return nil, errors.New("no valid JSON array found in LLM response")
 }
 
+// Deduplicate merges or drops near-identical requirements using semantic
+// similarity checks. It performs a quick lexical comparison before asking the
+// configured LLM to rate semantic similarity. When two requirements are deemed
+// similar, the earlier one is kept and enriched with details from the latter.
+func Deduplicate(reqs []Requirement) []Requirement {
+	if len(reqs) <= 1 {
+		return reqs
+	}
+
+	unique := make([]Requirement, 0, len(reqs))
+	for _, r := range reqs {
+		duplicate := false
+		for i := range unique {
+			if requirementsSimilar(unique[i], r) {
+				mergeRequirement(&unique[i], r)
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			unique = append(unique, r)
+		}
+	}
+	return unique
+}
+
+// requirementsSimilar reports whether a and b are semantically equivalent.
+// A lightweight lexical check is performed first to avoid expensive LLM calls
+// for obviously different requirements. If the lexical similarity is high, the
+// LLM is asked to rate the semantic similarity on a 0-1 scale.
+func requirementsSimilar(a, b Requirement) bool {
+	if strings.EqualFold(strings.TrimSpace(a.Name), strings.TrimSpace(b.Name)) &&
+		strings.EqualFold(strings.TrimSpace(a.Description), strings.TrimSpace(b.Description)) {
+		return true
+	}
+
+	// Only consult the LLM when the lexical overlap is significant.
+	if lexicalSimilarity(a, b) < 0.8 {
+		return false
+	}
+
+	prompt := fmt.Sprintf("On a scale from 0 to 1, how semantically similar are the following two requirements?\nR1: %q\nR2: %q\nRespond with only the number.", a.Description, b.Description)
+	resp, err := DB.LLM.Ask(prompt)
+	if err != nil {
+		return false
+	}
+	resp = strings.TrimSpace(resp)
+	if f, err := strconv.ParseFloat(resp, 64); err == nil {
+		return f >= 0.9
+	}
+	resp = strings.ToLower(resp)
+	return strings.HasPrefix(resp, "1") || strings.HasPrefix(resp, "yes")
+}
+
+// lexicalSimilarity computes a Jaccard index over token sets of the two
+// requirements' names and descriptions.
+func lexicalSimilarity(a, b Requirement) float64 {
+	words := func(s string) map[string]struct{} {
+		m := make(map[string]struct{})
+		for _, w := range strings.Fields(strings.ToLower(s)) {
+			m[w] = struct{}{}
+		}
+		return m
+	}
+	wa := words(a.Name + " " + a.Description)
+	wb := words(b.Name + " " + b.Description)
+	if len(wa) == 0 && len(wb) == 0 {
+		return 1
+	}
+	inter := 0
+	for w := range wa {
+		if _, ok := wb[w]; ok {
+			inter++
+		}
+	}
+	union := len(wa)
+	for w := range wb {
+		if _, ok := wa[w]; !ok {
+			union++
+		}
+	}
+	return float64(inter) / float64(union)
+}
+
+// mergeRequirement enriches dst with data from src when they are considered
+// duplicates. Currently it preserves the first requirement's identity while
+// taking the more detailed description and merging tags.
+func mergeRequirement(dst *Requirement, src Requirement) {
+	if len(src.Description) > len(dst.Description) {
+		dst.Description = src.Description
+	}
+	for _, tag := range src.Tags {
+		if !containsString(dst.Tags, tag) {
+			dst.Tags = append(dst.Tags, tag)
+		}
+	}
+}
+
+func containsString(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // Attachment is minimal metadata about an ingested file.
 type Attachment struct {
 	ID       int       `json:"id" toml:"id"`
@@ -316,9 +423,12 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	if err != nil {
 		return err
 	}
+	var newReqs []Requirement
 	for _, r := range reqs {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, FromGemini(r))
+		newReqs = append(newReqs, FromGemini(r))
 	}
+	newReqs = Deduplicate(newReqs)
+	prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, newReqs...))
 	att.Analyzed = true
 
 	// Summarize attachment content into an Intelligence entry.
