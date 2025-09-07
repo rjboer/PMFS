@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	gemini "github.com/rjboer/PMFS/pmfs/llm/gemini"
+	"github.com/rjboer/PMFS/pmfs/llm/prompts"
 )
 
 func TestRequirementGenerateDesignAspects(t *testing.T) {
@@ -75,5 +76,45 @@ func TestProjectGenerateDesignAspectsAll(t *testing.T) {
 	}
 	if len(prjReload.D.Requirements[1].DesignAspects) != 1 || prjReload.D.Requirements[1].DesignAspects[0].Name != "B1" {
 		t.Fatalf("aspects not persisted: %#v", prjReload.D.Requirements[1].DesignAspects)
+	}
+}
+
+func TestDesignAspectGenerateTemplates(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Given the design aspect %s, list requirement templates"}})
+	da := DesignAspect{Description: "Improve security"}
+	mockResp := `[{"name":"Template1","description":"System shall enforce XX"}]`
+	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) {
+		if !strings.Contains(prompt, da.Description) {
+			t.Fatalf("unexpected prompt: %s", prompt)
+		}
+		return mockResp, nil
+	}}
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	reqs, err := da.GenerateTemplates("test", "1")
+	if err != nil {
+		t.Fatalf("GenerateTemplates: %v", err)
+	}
+	if len(reqs) != 1 || da.Templates[0].Name != "Template1" {
+		t.Fatalf("unexpected templates: %#v", da.Templates)
+	}
+}
+
+func TestDesignAspectGenerateTemplatesMalformed(t *testing.T) {
+	t.Setenv("GEMINI_API_KEY", "test-key")
+	prompts.SetTestPrompts([]prompts.Prompt{{ID: "1", Template: "Given the design aspect %s"}})
+	da := DesignAspect{Description: "Improve reliability"}
+	client := gemini.ClientFunc{AskFunc: func(prompt string) (string, error) { return "not json", nil }}
+	dir := t.TempDir()
+	if _, err := LoadSetup(dir); err != nil {
+		t.Fatalf("LoadSetup: %v", err)
+	}
+	DB.LLM = client
+	if _, err := da.GenerateTemplates("test", "1"); err == nil {
+		t.Fatalf("expected error for malformed response")
 	}
 }

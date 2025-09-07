@@ -189,10 +189,10 @@ type Requirement struct {
 // Number of Belts
 // There are several ways to improve the requirement or add new one
 type DesignAspect struct {
-	Name                  string `json:"name" toml:"name"`
-	Description           string `json:"description" toml:"description"`
-	SuggestedRequirements []Requirement
-	Processed             bool `json:"AspectProcessed" toml:"AspectProcessed"` //the aspect has been processed
+	Name        string        `json:"name" toml:"name"`
+	Description string        `json:"description" toml:"description"`
+	Templates   []Requirement `json:"templates" toml:"templates"`
+	Processed   bool          `json:"AspectProcessed" toml:"AspectProcessed"` //the aspect has been processed
 }
 
 // FromGemini converts a Gemini requirement into a PMFS requirement.
