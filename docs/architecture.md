@@ -28,7 +28,7 @@ flowchart TD
 
   subgraph "Requirement Lifecycle"
     RP --> H[Project.ActivateRequirementByID]
-    H --> RA[Requirement (Active)]
+    H --> RA[Requirement, Active]
     RA --> J[Requirement.QualityControlAI]
     J --> LLM
     J --> GATE
