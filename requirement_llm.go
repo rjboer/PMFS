@@ -22,6 +22,19 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 	if err := json.Unmarshal(raw, &reqs); err != nil {
 		return nil, err
 	}
+
+	parentIdx := -1
+	if prj != nil {
+		for i := range prj.D.Requirements {
+			if &prj.D.Requirements[i] == r {
+				parentIdx = i
+				break
+			}
+		}
+	}
+	for i := range reqs {
+		reqs[i].ParentID = parentIdx
+	}
 	if prj != nil {
 		prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, reqs...))
 		if err := prj.Save(); err != nil {
