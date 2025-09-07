@@ -160,9 +160,20 @@ func TestModifyProjectUpdatesTomlAndIndex(t *testing.T) {
 
 func TestAddAttachmentFromInputMovesFileAndRecordsMetadata(t *testing.T) {
 	// mock Gemini client to avoid external calls
-	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-		return nil, nil
-	}})
+	askCalls := 0
+	orig := llm.SetClient(gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			return nil, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			if askCalls%2 == 0 {
+				askCalls++
+				return "summary", nil
+			}
+			askCalls++
+			return "[]", nil
+		},
+	})
 	defer llm.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
@@ -237,12 +248,23 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	dir := t.TempDir()
 
 	var expected string
-	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-		if path != expected {
-			t.Fatalf("AnalyzeAttachment called with %s, want %s", path, expected)
-		}
-		return mockReqs, nil
-	}})
+	askCalls := 0
+	orig := llm.SetClient(gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			if path != expected {
+				t.Fatalf("AnalyzeAttachment called with %s, want %s", path, expected)
+			}
+			return mockReqs, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			if askCalls == 0 {
+				askCalls++
+				return "summary", nil
+			}
+			askCalls++
+			return `[{"name":"Aspect1","description":"Desc1"}]`, nil
+		},
+	})
 	defer llm.SetClient(orig)
 
 	if _, err := LoadSetup(dir); err != nil {
@@ -252,6 +274,12 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	prj := &ProjectType{ProductID: 1, ID: 2}
 	att := Attachment{RelPath: filepath.ToSlash(filepath.Join("attachments", "1", "f.txt"))}
 	expected = filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
+	if err := os.MkdirAll(filepath.Dir(expected), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(expected, []byte("hello world"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
 
 	if err := att.GenerateRequirements(prj, ""); err != nil {
 		t.Fatalf("GenerateRequirements: %v", err)
@@ -261,6 +289,12 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	}
 	if len(prj.D.PotentialRequirements) != 1 || prj.D.PotentialRequirements[0].Name != "R1" {
 		t.Fatalf("unexpected potential requirements: %#v", prj.D.PotentialRequirements)
+	}
+	if len(prj.D.Intelligence) != 1 || prj.D.Intelligence[0].Description != "summary" {
+		t.Fatalf("intelligence not generated: %#v", prj.D.Intelligence)
+	}
+	if len(prj.D.Intelligence[0].DesignAngles) != 1 || prj.D.Intelligence[0].DesignAngles[0].Name != "Aspect1" {
+		t.Fatalf("design aspects missing: %#v", prj.D.Intelligence[0].DesignAngles)
 	}
 
 	var dp struct {
@@ -272,15 +306,31 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	}
 	if len(dp.D.PotentialRequirements) != 1 {
 		t.Fatalf("project.toml not updated: %#v", dp.D.PotentialRequirements)
-
+	}
+	if len(dp.D.Intelligence) != 1 {
+		t.Fatalf("intelligence not persisted: %#v", dp.D.Intelligence)
+	}
+	if askCalls != 2 {
+		t.Fatalf("unexpected number of Ask calls: %d", askCalls)
 	}
 }
 
 func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	mockReqs := []gemini.Requirement{{ID: 1, Name: "R1", Description: "D1"}}
-	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-		return mockReqs, nil
-	}})
+	askCalls := 0
+	orig := llm.SetClient(gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			return mockReqs, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			if askCalls%2 == 0 {
+				askCalls++
+				return "summary", nil
+			}
+			askCalls++
+			return "[]", nil
+		},
+	})
 	defer llm.SetClient(orig)
 
 	dir := t.TempDir()
@@ -431,10 +481,20 @@ func TestAddAttachmentRealAPI(t *testing.T) {
 }
 
 func TestIngestInputDirProcessesAllFiles(t *testing.T) {
-
-	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-		return nil, nil
-	}})
+	askCalls := 0
+	orig := llm.SetClient(gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			return nil, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			if askCalls%2 == 0 {
+				askCalls++
+				return "summary", nil
+			}
+			askCalls++
+			return "[]", nil
+		},
+	})
 	defer llm.SetClient(orig)
 
 	t.Setenv("GEMINI_API_KEY", "test-key")
@@ -512,9 +572,20 @@ func TestIngestInputDirProcessesAllFiles(t *testing.T) {
 }
 
 func TestAttachmentManagerAddFromInputFolder(t *testing.T) {
-	orig := llm.SetClient(gemini.ClientFunc{AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
-		return nil, nil
-	}})
+	askCalls := 0
+	orig := llm.SetClient(gemini.ClientFunc{
+		AnalyzeAttachmentFunc: func(path string) ([]gemini.Requirement, error) {
+			return nil, nil
+		},
+		AskFunc: func(prompt string) (string, error) {
+			if askCalls%2 == 0 {
+				askCalls++
+				return "summary", nil
+			}
+			askCalls++
+			return "[]", nil
+		},
+	})
 	defer llm.SetClient(orig)
 
 	dir := t.TempDir()
