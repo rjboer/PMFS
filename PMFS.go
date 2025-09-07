@@ -166,13 +166,14 @@ type Requirement struct {
 	History            []ChangeLog     `json:"history" toml:"history"`     // Record of changes to the requirement.
 	IntelligenceLink   []*Intelligence `json:"intelligence_links" toml:"intelligence_links"`
 	GateResults        []gates.Result  `json:"gate_results,omitempty" toml:"gate_results"`
-	RecommendedChanges []Ideas         `json:"RequirementImprovements" toml:"requirementideas"`
+	RecommendedChanges []DesignAspect  `json:"RequirementImprovements" toml:"requirementdesignaspects"`
+	DesignAspects      []DesignAspect  `json:"design_aspects" toml:"design_aspects"`
 	// Optional: Tags can help with flexible categorization or filtering.
 	Tags []string `json:"tags,omitempty" toml:"tags"`
 }
 
-// An Idea is a take on the requirement, as a way to improve this,  as with the following example:
-// Ideas describe an element of the project -> this turns into requirements.
+// A DesignAspect is a take on the requirement, as a way to improve this,  as with the following example:
+// DesignAspects describe an element of the project -> this turns into requirements.
 // The following (bad dual requirement)
 // The logistics line should have transport belts, these belts should be 4 meters long
 // Improvements:
@@ -187,11 +188,11 @@ type Requirement struct {
 // Belt Tensioning System
 // Number of Belts
 // There are several ways to improve the requirement or add new one
-type Ideas struct {
+type DesignAspect struct {
 	Name                  string `json:"name" toml:"name"`
 	Description           string `json:"description" toml:"description"`
 	SuggestedRequirements []Requirement
-	Processed             bool `json:"IdeaProcessed" toml:"IdeaProcessed"` //the idea has been processed
+	Processed             bool `json:"AspectProcessed" toml:"AspectProcessed"` //the aspect has been processed
 }
 
 // FromGemini converts a Gemini requirement into a PMFS requirement.
@@ -263,6 +264,27 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 
 	}
 	return reqs, nil
+}
+
+// GenerateDesignAspects asks the client for design improvement topics based on
+// the requirement's description. Returned aspects are appended to the
+// requirement and also returned to the caller.
+func (r *Requirement) GenerateDesignAspects() ([]DesignAspect, error) {
+	prompt := fmt.Sprintf("Given the requirement %q, list design improvement topics (JSON array with `name` and `description`).", r.Description)
+	resp, err := DB.LLM.Ask(prompt)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := parseLLMJSON(resp)
+	if err != nil {
+		return nil, err
+	}
+	var aspects []DesignAspect
+	if err := json.Unmarshal(raw, &aspects); err != nil {
+		return nil, err
+	}
+	r.DesignAspects = append(r.DesignAspects, aspects...)
+	return aspects, nil
 }
 
 // parseLLMJSON extracts the first valid JSON array from the LLM response.
@@ -409,7 +431,7 @@ type Intelligence struct {
 	Description string    `json:"description" toml:"description"`
 	ExtractedAt time.Time `json:"extracted_at" toml:"extracted_at"`
 	//DesignAngles describe ways/topics to describe the functionality that is caputured in the intelligence.
-	DesignAngles []Ideas `json:"DesignAngles_Ideas" toml:"DesignAngles_Ideas"`
+	DesignAngles []DesignAspect `json:"DesignAngles_DesignAspects" toml:"DesignAngles_DesignAspects"`
 }
 
 // -----------------------------------------------------------------------------
@@ -943,6 +965,17 @@ func (prj *ProjectType) ActivateAllPotential() {
 func (prj *ProjectType) AddRequirement(r Requirement) error {
 	r.ID = len(prj.D.Requirements) + 1
 	prj.D.Requirements = append(prj.D.Requirements, r)
+	return prj.Save()
+}
+
+// GenerateDesignAspectsAll runs GenerateDesignAspects for every requirement in
+// the project and persists the results.
+func (prj *ProjectType) GenerateDesignAspectsAll() error {
+	for i := range prj.D.Requirements {
+		if _, err := prj.D.Requirements[i].GenerateDesignAspects(); err != nil {
+			return err
+		}
+	}
 	return prj.Save()
 }
 
