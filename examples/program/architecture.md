@@ -30,6 +30,7 @@ flowchart TD
     N -->|Suggest related requirements| N2[suggestRelated]
     N -->|Back| K
     O -->|Export Excel| O1[exportExcel]
+    O -->|Export Project| O3[exportProjectStruct]
     O -->|Import Excel| O2[importExcel]
     O -->|Back| K
 ```
