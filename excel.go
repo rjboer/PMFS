@@ -77,7 +77,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.PotentialRequirements) > 0 {
 		sheet := "PotentialRequirements"
 		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags"}
+		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Enable"}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -96,6 +96,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.AttachmentIndex,
 				req.Category,
 				strings.Join(req.Tags, ","),
+				false,
 			}
 			cell := fmt.Sprintf("A%d", i+2)
 			if err := f.SetSheetRow(sheet, cell, &row); err != nil {
@@ -262,7 +263,16 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 			if row[12] != "" {
 				req.Tags = strings.Split(row[12], ",")
 			}
-			pd.PotentialRequirements = append(pd.PotentialRequirements, req)
+			enabled := false
+			if len(row) > 13 {
+				val := strings.ToLower(row[13])
+				enabled = val == "true" || val == "1" || val == "yes"
+			}
+			if enabled {
+				pd.Requirements = append(pd.Requirements, req)
+			} else {
+				pd.PotentialRequirements = append(pd.PotentialRequirements, req)
+			}
 		}
 		pd.PotentialRequirements = Deduplicate(pd.PotentialRequirements)
 	}
