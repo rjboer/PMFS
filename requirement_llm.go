@@ -23,7 +23,7 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 		return nil, err
 	}
 	if prj != nil {
-		prj.D.PotentialRequirements = append(prj.D.PotentialRequirements, reqs...)
+		prj.D.PotentialRequirements = Deduplicate(append(prj.D.PotentialRequirements, reqs...))
 		if err := prj.Save(); err != nil {
 			return nil, err
 		}
