@@ -10,7 +10,7 @@ flowchart TD
   subgraph Ingestion
 
 
-    A [Add files to Input folder]
+    A[Add files to Input folder]
     A --> C[Project.AddAttachmentFromInput]
     C --> D[Attachment stored in folder + metadata]
     D --> E[Attachment.Analyze]
