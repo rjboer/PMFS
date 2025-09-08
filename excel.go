@@ -46,7 +46,7 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.Requirements) > 0 {
 		sheet := "Requirements"
 		f.NewSheet(sheet)
-		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "Active", "Deleted"}
+               header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted"}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -65,10 +65,11 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.AttachmentIndex,
 				req.Category,
 				strings.Join(req.Tags, ","),
-				req.Condition.Proposed,
-				req.Condition.AIgenerated,
-				req.Condition.Active,
-				req.Condition.Deleted,
+                               req.Condition.Proposed,
+                               req.Condition.AIgenerated,
+                               req.Condition.AIanalyzed,
+                               req.Condition.Active,
+                               req.Condition.Deleted,
 			}
 			cell := fmt.Sprintf("A%d", i+2)
 			if err := f.SetSheetRow(sheet, cell, &row); err != nil {
@@ -195,24 +196,28 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 		if row[12] != "" {
 			req.Tags = strings.Split(row[12], ",")
 		}
-		if len(row) > 13 {
-			val := strings.ToLower(row[13])
-			req.Condition.Proposed = val == "true" || val == "1" || val == "yes"
-		}
-		if len(row) > 14 {
-			val := strings.ToLower(row[14])
-			req.Condition.AIgenerated = val == "true" || val == "1" || val == "yes"
-		}
-		if len(row) > 15 {
-			val := strings.ToLower(row[15])
-			req.Condition.Active = val == "true" || val == "1" || val == "yes"
-		}
-		if len(row) > 16 {
-			val := strings.ToLower(row[16])
-			req.Condition.Deleted = val == "true" || val == "1" || val == "yes"
-		}
-		pd.Requirements = append(pd.Requirements, req)
-	}
+               if len(row) > 13 {
+                       val := strings.ToLower(row[13])
+                       req.Condition.Proposed = val == "true" || val == "1" || val == "yes"
+               }
+               if len(row) > 14 {
+                       val := strings.ToLower(row[14])
+                       req.Condition.AIgenerated = val == "true" || val == "1" || val == "yes"
+               }
+               if len(row) > 15 {
+                       val := strings.ToLower(row[15])
+                       req.Condition.AIanalyzed = val == "true" || val == "1" || val == "yes"
+               }
+               if len(row) > 16 {
+                       val := strings.ToLower(row[16])
+                       req.Condition.Active = val == "true" || val == "1" || val == "yes"
+               }
+               if len(row) > 17 {
+                       val := strings.ToLower(row[17])
+                       req.Condition.Deleted = val == "true" || val == "1" || val == "yes"
+               }
+               pd.Requirements = append(pd.Requirements, req)
+       }
 
 	// Intelligence (optional)
 	if intelRows, err := f.GetRows("Intelligence"); err == nil {

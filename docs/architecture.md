@@ -63,6 +63,8 @@ flowchart TD
   requirements are skipped by analysis and gating.
 - **AIgenerated** – indicates the requirement originated from the LLM. User-created
   requirements leave this false.
+- **AIanalyzed** – requirement has already been processed by the LLM and is
+  skipped during subsequent analyses.
 - **Active** – requirement is approved and participates in analysis, gating, and
   export.
 - **Deleted** – requirement has been removed from active consideration but is

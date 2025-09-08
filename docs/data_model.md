@@ -83,6 +83,7 @@ classDiagram
     class ConditionType {
         +bool Proposed
         +bool AIgenerated
+        +bool AIanalyzed
         +bool Active
         +bool Deleted
     }
