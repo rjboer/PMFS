@@ -123,11 +123,20 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 				return
 			}
 			name := scanner.Text()
-			if _, err := p.NewProject(PMFS.ProjectData{Name: name}); err != nil {
+			id, err := p.NewProject(PMFS.ProjectData{Name: name})
+			if err != nil {
 				log.Printf("NewProject: %v", err)
-			} else if err := PMFS.DB.Save(); err != nil {
+				continue
+			}
+			if err := PMFS.DB.Save(); err != nil {
 				log.Printf("Save DB: %v", err)
 			}
+			prj, err := p.Project(id)
+			if err != nil {
+				log.Printf("Load project: %v", err)
+				continue
+			}
+			projectMenu(scanner, p, prj)
 		case 2:
 			prj := selectProject(scanner, p)
 			if prj != nil {
