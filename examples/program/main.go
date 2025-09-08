@@ -110,26 +110,25 @@ func selectProduct(scanner *bufio.Scanner) *PMFS.ProductType {
 	return &PMFS.DB.Products[idx]
 }
 
-// selectProject prompts for a project ID and loads it from disk.
-func selectProject(scanner *bufio.Scanner, p *PMFS.ProductType) *PMFS.ProjectType {
+// selectProject displays a menu of project names and returns the chosen project.
+func selectProject(_ *bufio.Scanner, p *PMFS.ProductType) *PMFS.ProjectType {
 	if len(p.Projects) == 0 {
 		fmt.Println("No projects available.")
 		return nil
 	}
-	fmt.Println("Projects:")
-	for _, pr := range p.Projects {
-		fmt.Printf("%d: %s\n", pr.ID, pr.Name)
+
+	options := make([]string, len(p.Projects))
+	for i, pr := range p.Projects {
+		options[i] = pr.Name
 	}
-	fmt.Print("Select project ID: ")
-	if !scanner.Scan() {
-		return nil
-	}
-	id, err := strconv.Atoi(scanner.Text())
+
+	prompt := promptui.Select{Label: "Select project", Items: options}
+	idx, _, err := prompt.Run()
 	if err != nil {
-		fmt.Println("Invalid selection")
 		return nil
 	}
-	prj, err := p.Project(id)
+
+	prj, err := p.Project(p.Projects[idx].ID)
 	if err != nil {
 		fmt.Printf("Load project: %v\n", err)
 		return nil
