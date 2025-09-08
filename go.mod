@@ -7,6 +7,8 @@ toolchain go1.23.6
 require (
         github.com/pelletier/go-toml/v2 v2.2.4
         github.com/xuri/excelize/v2 v2.9.1
+        github.com/manifoldco/promptui v0.9.0
+        github.com/fatih/color v1.15.0
 )
 
 require (
