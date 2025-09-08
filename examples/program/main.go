@@ -48,7 +48,8 @@ func loadEnv() {
 // the selected index.
 func menuSelect(title string, options []string) (int, error) {
 	prompt := promptui.Select{Label: title, Items: options}
-	return prompt.Run()
+	idx, _, err := prompt.Run()
+	return idx, err
 }
 
 // clearScreen clears the terminal using ANSI escape codes.
@@ -90,29 +91,23 @@ func createProduct(scanner *bufio.Scanner) *PMFS.ProductType {
 	return p
 }
 
-// selectProduct prompts for a product ID and returns the matching product.
+// selectProduct displays a menu of product names and returns the chosen product.
 func selectProduct(scanner *bufio.Scanner) *PMFS.ProductType {
 	if len(PMFS.DB.Products) == 0 {
 		fmt.Println("No products available.")
 		return nil
 	}
-	listProducts()
-	fmt.Print("Select product ID: ")
-	if !scanner.Scan() {
-		return nil
+
+	options := make([]string, len(PMFS.DB.Products))
+	for i, p := range PMFS.DB.Products {
+		options[i] = p.Name
 	}
-	id, err := strconv.Atoi(scanner.Text())
+
+	idx, err := menuSelect("Select product", options)
 	if err != nil {
-		fmt.Println("Invalid ID")
 		return nil
 	}
-	for i := range PMFS.DB.Products {
-		if PMFS.DB.Products[i].ID == id {
-			return &PMFS.DB.Products[i]
-		}
-	}
-	fmt.Println("Product not found")
-	return nil
+	return &PMFS.DB.Products[idx]
 }
 
 // selectProject prompts for a project ID and loads it from disk.
