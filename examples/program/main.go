@@ -11,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
+
 	PMFS "github.com/rjboer/PMFS"
 )
 
@@ -40,6 +43,20 @@ func loadEnv() {
 		log.Printf("Error reading .env: %v", err)
 	}
 }
+
+// menuSelect displays a menu with the provided title and options and returns
+// the selected index.
+func menuSelect(title string, options []string) (int, error) {
+	prompt := promptui.Select{Label: title, Items: options}
+	return prompt.Run()
+}
+
+// clearScreen clears the terminal using ANSI escape codes.
+func clearScreen() {
+	fmt.Print("\033[H\033[2J")
+}
+
+var heading = color.New(color.FgCyan, color.Bold).SprintfFunc()
 
 // listProducts prints all products in the database with their IDs.
 func listProducts() {
@@ -177,27 +194,22 @@ func editProject(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 // productMenu provides options for a selected product.
 func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s\n", p.Name)
-		fmt.Println()
-		fmt.Println("1) Project operations")
-		fmt.Println("2) Edit product")
-		fmt.Println("3) Back to product list")
-		fmt.Println("99) Exit")
-		fmt.Println("-----------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s", p.Name))
+		options := []string{
+			"Project operations",
+			"Edit product",
+			"Back to product list",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			projectOpsMenu(scanner, p)
-		case "2":
+		case 1:
 			fmt.Print("New product name: ")
 			if !scanner.Scan() {
 				return
@@ -211,13 +223,11 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 					log.Printf("Save DB: %v", err)
 				}
 			}
-		case "3", "back":
+		case 2:
 			return
-		case "99", "exit":
+		case 3:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -225,28 +235,23 @@ func productMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 // projectOpsMenu handles project-related operations for a product.
 func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project operations\n", p.Name)
-		fmt.Println()
-		fmt.Println("1) List projects")
-		fmt.Println("2) Create project")
-		fmt.Println("3) Edit project")
-		fmt.Println("4) Delete project")
-		fmt.Println("5) Select project")
-		fmt.Println("6) Back to product menu")
-		fmt.Println("99) Exit")
-		fmt.Println("-----------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project operations", p.Name))
+		options := []string{
+			"List projects",
+			"Create project",
+			"Edit project",
+			"Delete project",
+			"Select project",
+			"Back to product menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			if len(p.Projects) == 0 {
 				fmt.Println("No projects available.")
 			} else {
@@ -254,7 +259,7 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 					fmt.Printf("%d: %s\n", pr.ID, pr.Name)
 				}
 			}
-		case "2":
+		case 1:
 			fmt.Print("Project name: ")
 			if !scanner.Scan() {
 				return
@@ -265,12 +270,12 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 			} else if err := PMFS.DB.Save(); err != nil {
 				log.Printf("Save DB: %v", err)
 			}
-		case "3":
+		case 2:
 			prj := selectProject(scanner, p)
 			if prj != nil {
 				editProject(scanner, prj)
 			}
-		case "4":
+		case 3:
 			prj := selectProject(scanner, p)
 			if prj != nil {
 				prjDir := filepath.Join(PMFS.DB.BaseDir, "products", strconv.Itoa(p.ID), "projects", strconv.Itoa(prj.ID))
@@ -288,18 +293,16 @@ func projectOpsMenu(scanner *bufio.Scanner, p *PMFS.ProductType) {
 					}
 				}
 			}
-		case "5":
+		case 4:
 			prj := selectProject(scanner, p)
 			if prj != nil {
 				projectMenu(scanner, p, prj)
 			}
-		case "6", "back":
+		case 5:
 			return
-		case "99", "exit":
+		case 6:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -426,10 +429,7 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, b, 0o644)
 }
 
-func whiterows() {
-	fmt.Printf("\n\n\n\n\n\n\n\n\n")
-	fmt.Println("--------------------------------------------------------")
-}
+// legacy whiterows replaced by clearScreen
 
 // ingestAttachment asks for a file path, copies it into the project's input
 // directory, ingests the file, lets the user pick one attachment for analysis
@@ -719,41 +719,34 @@ func generateRequirementsFromAspects(prj *PMFS.ProjectType) {
 // projectMenu handles project-specific operations for a loaded project.
 func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project: %s\n", p.Name, prj.Name)
-		fmt.Println()
-		fmt.Println("1) Requirements")
-		fmt.Println("2) Attachments")
-		fmt.Println("3) Analysis")
-		fmt.Println("4) Export/Import")
-		fmt.Println("5) Back to product menu")
-		fmt.Println("99) Exit")
-		fmt.Println()
-		fmt.Println("--------------------------------------------------------")
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project: %s", p.Name, prj.Name))
+		options := []string{
+			"Requirements",
+			"Attachments",
+			"Analysis",
+			"Export/Import",
+			"Back to product menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			requirementsMenu(scanner, p, prj)
-		case "2":
+		case 1:
 			attachmentsMenu(scanner, p, prj)
-		case "3":
+		case 2:
 			analysisMenu(scanner, p, prj)
-		case "4":
+		case 3:
 			exportImportMenu(scanner, p, &prj)
-		case "5", "back":
+		case 4:
 			return
-		case "99", "exit":
+		case 5:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -761,44 +754,37 @@ func projectMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectT
 // requirementsMenu manages requirement operations.
 func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project: %s > Requirements\n", p.Name, prj.Name)
-		fmt.Println()
-		fmt.Println("1) Add requirement")
-		fmt.Println("2) Show project overview")
-		fmt.Println("3) Show requirements by status")
-		fmt.Println("4) Generate design aspects")
-		fmt.Println("5) Generate requirements from design aspects")
-		fmt.Println("6) Back to project menu")
-		fmt.Println("99) Exit")
-		fmt.Println("--------------------------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project: %s > Requirements", p.Name, prj.Name))
+		options := []string{
+			"Add requirement",
+			"Show project overview",
+			"Show requirements by status",
+			"Generate design aspects",
+			"Generate requirements from design aspects",
+			"Back to project menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			addRequirement(scanner, prj)
-		case "2":
+		case 1:
 			showOverview(prj)
-		case "3":
+		case 2:
 			showRequirementsByStatus(scanner, prj)
-		case "4":
+		case 3:
 			generateDesignAspects(prj)
-		case "5":
+		case 4:
 			generateRequirementsFromAspects(prj)
-		case "6", "back":
+		case 5:
 			return
-		case "99", "exit":
+		case 6:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -806,32 +792,25 @@ func requirementsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Pro
 // attachmentsMenu manages attachment ingestion.
 func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project: %s > Attachments\n", p.Name, prj.Name)
-		fmt.Println()
-		fmt.Println("1) Ingest attachment")
-		fmt.Println("2) Back to project menu")
-		fmt.Println("99) Exit")
-		fmt.Println("--------------------------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project: %s > Attachments", p.Name, prj.Name))
+		options := []string{
+			"Ingest attachment",
+			"Back to project menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			ingestAttachment(scanner, prj)
-		case "2", "back":
+		case 1:
 			return
-		case "99", "exit":
+		case 2:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -839,35 +818,28 @@ func attachmentsMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Proj
 // analysisMenu groups requirement analysis operations.
 func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.ProjectType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project: %s > Analysis\n", p.Name, prj.Name)
-		fmt.Println()
-		fmt.Println("1) Analyse requirement")
-		fmt.Println("2) Suggest related requirements")
-		fmt.Println("3) Back to project menu")
-		fmt.Println("99) Exit")
-		fmt.Println("--------------------------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project: %s > Analysis", p.Name, prj.Name))
+		options := []string{
+			"Analyse requirement",
+			"Suggest related requirements",
+			"Back to project menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			analyseRequirement(scanner, prj)
-		case "2":
+		case 1:
 			suggestRelated(scanner, prj)
-		case "3", "back":
+		case 2:
 			return
-		case "99", "exit":
+		case 3:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -875,38 +847,31 @@ func analysisMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj *PMFS.Project
 // exportImportMenu handles exporting and importing project data.
 func exportImportMenu(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
 	for {
-		fmt.Println()
-		whiterows()
-		fmt.Printf("Product: %s > Project: %s > Export/Import\n", p.Name, (*prj).Name)
-		fmt.Println()
-		fmt.Println("1) Export to Excel")
-		fmt.Println("2) Export project struct")
-		fmt.Println("3) Import from Excel")
-		fmt.Println("4) Back to project menu")
-		fmt.Println("99) Exit")
-		fmt.Println("--------------------------------------------------------")
-		fmt.Println()
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		clearScreen()
+		fmt.Println(heading("Product: %s > Project: %s > Export/Import", p.Name, (*prj).Name))
+		options := []string{
+			"Export to Excel",
+			"Export project struct",
+			"Import from Excel",
+			"Back to project menu",
+			"Exit",
+		}
+		idx, err := menuSelect("Select option", options)
+		if err != nil {
 			return
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			exportExcel(scanner, *prj)
-		case "2":
+		case 1:
 			exportProjectStruct(scanner, *prj)
-		case "3":
+		case 2:
 			importExcel(scanner, p, prj)
-		case "4", "back":
+		case 3:
 			return
-		case "99", "exit":
+		case 4:
 			fmt.Println("Goodbye!")
 			os.Exit(0)
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 }
@@ -936,35 +901,24 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		whiterows()
+		clearScreen()
 		listProducts()
-		fmt.Println()
-		fmt.Println("Product menu:")
-		fmt.Println()
-		fmt.Println("1) Select product")
-		fmt.Println("2) Create product")
-		fmt.Println("3) Exit")
-		fmt.Println("--------------------------------------------------------")
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
+		options := []string{"Select product", "Create product", "Exit"}
+		idx, err := menuSelect("Product menu", options)
+		if err != nil {
 			break
 		}
-		choice := scanner.Text()
-
-		switch choice {
-		case "1":
+		switch idx {
+		case 0:
 			p := selectProduct(scanner)
 			if p != nil {
 				productMenu(scanner, p)
 			}
-		case "2":
+		case 1:
 			createProduct(scanner)
-		case "3", "exit":
+		case 2:
 			fmt.Println("Goodbye!")
 			return
-		default:
-			fmt.Println("Unknown option")
 		}
 	}
 
