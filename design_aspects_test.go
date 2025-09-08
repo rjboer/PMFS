@@ -102,6 +102,9 @@ func TestDesignAspectGenerateTemplates(t *testing.T) {
 	if len(reqs) != 1 || da.Templates[0].Name != "Template1" {
 		t.Fatalf("unexpected templates: %#v", da.Templates)
 	}
+	if !da.Templates[0].Condition.Proposed || !da.Templates[0].Condition.AIgenerated {
+		t.Fatalf("condition flags not set: %#v", da.Templates[0].Condition)
+	}
 }
 
 func TestDesignAspectGenerateTemplatesMalformed(t *testing.T) {
