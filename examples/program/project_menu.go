@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/manifoldco/promptui"
-
 	PMFS "github.com/rjboer/PMFS"
 )
 
@@ -27,15 +25,14 @@ func selectProject(_ *bufio.Scanner, p *PMFS.ProductType) *PMFS.ProjectType {
 		options[i] = pr.Name
 	}
 
-	prompt := promptui.Select{Label: "Select project", Items: options}
-	idx, _, err := prompt.Run()
+	idx, err := menuSelect("Select project", options)
 	if err != nil {
 		return nil
 	}
 
 	prj, err := p.Project(p.Projects[idx].ID)
 	if err != nil {
-		fmt.Printf("Load project: %v\n", err)
+		log.Printf("Load project: %v", err)
 		return nil
 	}
 	return prj
