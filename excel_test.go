@@ -39,15 +39,15 @@ func TestExportRequirementsConditionColumns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRows: %v", err)
 	}
-	if len(rows) == 0 || len(rows[0]) < 17 {
-		t.Fatalf("expected condition columns in header, got %v", rows)
-	}
-	if rows[0][13] != "Proposed" || rows[0][14] != "AIgenerated" || rows[0][15] != "Active" || rows[0][16] != "Deleted" {
-		t.Fatalf("unexpected header %v", rows[0])
-	}
-	if len(rows) < 2 || len(rows[1]) < 17 || !strings.EqualFold(rows[1][13], "true") {
-		t.Fatalf("expected proposed true in row, got %v", rows[1])
-	}
+       if len(rows) == 0 || len(rows[0]) < 18 {
+               t.Fatalf("expected condition columns in header, got %v", rows)
+       }
+       if rows[0][13] != "Proposed" || rows[0][14] != "AIgenerated" || rows[0][15] != "AIanalyzed" || rows[0][16] != "Active" || rows[0][17] != "Deleted" {
+               t.Fatalf("unexpected header %v", rows[0])
+       }
+       if len(rows) < 2 || len(rows[1]) < 18 || !strings.EqualFold(rows[1][13], "true") {
+               t.Fatalf("expected proposed true in row, got %v", rows[1])
+       }
 }
 
 func TestImportRequirements(t *testing.T) {
@@ -64,11 +64,11 @@ func TestImportRequirements(t *testing.T) {
 	f.SetSheetName("Sheet1", "Project")
 
 	f.NewSheet("Requirements")
-	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "Active", "Deleted"}
+       reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted"}
 	if err := f.SetSheetRow("Requirements", "A1", &reqHeader); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
-	row := []interface{}{1, "Req", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true", "false", "false", "false"}
+       row := []interface{}{1, "Req", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true", "false", "false", "false", "false"}
 	if err := f.SetSheetRow("Requirements", "A2", &row); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
