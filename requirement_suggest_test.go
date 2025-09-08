@@ -41,7 +41,7 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if prj.D.Requirements[1].ParentID != 0 {
 		t.Fatalf("parent index not set: %#v", prj.D.Requirements[1])
 	}
-	if !prj.D.Requirements[1].Condition.Proposed || prj.D.Requirements[1].Condition.AIgenerated {
+	if !prj.D.Requirements[1].Condition.Proposed || !prj.D.Requirements[1].Condition.AIgenerated {
 		t.Fatalf("condition flags not set correctly: %#v", prj.D.Requirements[1].Condition)
 	}
 	var dp struct {

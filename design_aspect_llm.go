@@ -38,6 +38,10 @@ func (da *DesignAspect) GenerateTemplates(role, questionID string) ([]Requiremen
 	if err := json.Unmarshal(raw, &reqs); err != nil {
 		return nil, err
 	}
+	for i := range reqs {
+		reqs[i].Condition.Proposed = true
+		reqs[i].Condition.AIgenerated = true
+	}
 	da.Templates = append(da.Templates, reqs...)
 	return reqs, nil
 }
