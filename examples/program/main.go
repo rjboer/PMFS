@@ -71,7 +71,8 @@ func listProducts() {
 	}
 }
 
-// createProduct asks the user for a name, creates the product and saves the DB.
+// createProduct asks the user for a name, creates the product and saves the DB,
+// returning the newly created product.
 func createProduct(scanner *bufio.Scanner) *PMFS.ProductType {
 	fmt.Print("Product name: ")
 	if !scanner.Scan() {
@@ -909,7 +910,9 @@ func main() {
 				productMenu(scanner, p)
 			}
 		case 1:
-			createProduct(scanner)
+			if p := createProduct(scanner); p != nil {
+				productMenu(scanner, p)
+			}
 		case 2:
 			fmt.Println("Goodbye!")
 			return
