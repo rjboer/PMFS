@@ -156,11 +156,11 @@ type ProjectData struct {
 
 // ConditionType represents the state of a requirement.
 type ConditionType struct {
-        Proposed    bool `json:"proposed" toml:"proposed"`
-        AIgenerated bool `json:"aigenerated" toml:"aigenerated"`
-       AIanalyzed  bool `json:"aianalyzed" toml:"aianalyzed"`
-        Active      bool `json:"active" toml:"active"`
-        Deleted     bool `json:"deleted" toml:"deleted"`
+	Proposed    bool `json:"proposed" toml:"proposed"`
+	AIgenerated bool `json:"aigenerated" toml:"aigenerated"`
+	AIanalyzed  bool `json:"aianalyzed" toml:"aianalyzed"`
+	Active      bool `json:"active" toml:"active"`
+	Deleted     bool `json:"deleted" toml:"deleted"`
 }
 
 // Requirement represents a confirmed requirement with detailed metadata.
@@ -245,11 +245,11 @@ func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string
 	if err != nil {
 		return pass, ans, err
 	}
-       if err := r.EvaluateGates(gateIDs); err != nil {
-               return pass, ans, err
-       }
-       r.Condition.AIanalyzed = true
-       return pass, ans, nil
+	if err := r.EvaluateGates(gateIDs); err != nil {
+		return pass, ans, err
+	}
+	r.Condition.AIanalyzed = true
+	return pass, ans, nil
 }
 
 // EvaluateDesignGates runs the specified gates against each template requirement
@@ -409,6 +409,7 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 		newReqs = append(newReqs, nr)
 	}
 	prj.D.Requirements = Deduplicate(append(prj.D.Requirements, newReqs...), false)
+	prj.ensureRequirementIDs()
 	att.Analyzed = true
 
 	// Summarize attachment content into an Intelligence entry.
@@ -1041,9 +1042,33 @@ func (prj *ProjectType) ActivateRequirementsWhere(pred func(Requirement) bool) {
 	_ = prj.Save()
 }
 
+// ensureRequirementIDs assigns monotonically increasing IDs to any requirements
+// missing one. It preserves existing IDs and fills gaps based on the current
+// maximum ID.
+func (prj *ProjectType) ensureRequirementIDs() {
+	maxID := 0
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID > maxID {
+			maxID = prj.D.Requirements[i].ID
+		}
+	}
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID == 0 {
+			maxID++
+			prj.D.Requirements[i].ID = maxID
+		}
+	}
+}
+
 // AddRequirement appends a requirement to the project and persists it.
 func (prj *ProjectType) AddRequirement(r Requirement) error {
-	r.ID = len(prj.D.Requirements) + 1
+	maxID := 0
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID > maxID {
+			maxID = prj.D.Requirements[i].ID
+		}
+	}
+	r.ID = maxID + 1
 	prj.D.Requirements = append(prj.D.Requirements, r)
 	return prj.Save()
 }
@@ -1061,15 +1086,15 @@ func (prj *ProjectType) GenerateDesignAspectsAll() error {
 
 // QualityControlScanALL runs QualityControlAI on every requirement in the project.
 func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs []string) error {
-       for i := range prj.D.Requirements {
-               if prj.D.Requirements[i].Condition.AIanalyzed {
-                       continue
-               }
-               if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil {
-                       return err
-               }
-       }
-       return nil
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].Condition.AIanalyzed {
+			continue
+		}
+		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AnalyseAll runs QualityControlAI on all requirements.
@@ -1080,9 +1105,9 @@ func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) er
 
 	for i := range prj.D.Requirements {
 		req := &prj.D.Requirements[i]
-               if req.Condition.Proposed || req.Condition.Deleted || req.Condition.AIanalyzed {
-                       continue
-               }
+		if req.Condition.Proposed || req.Condition.Deleted || req.Condition.AIanalyzed {
+			continue
+		}
 		if _, _, err := req.QualityControlAI(role, questionID, gateIDs); err != nil && firstErr == nil {
 			firstErr = err
 		}

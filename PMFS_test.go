@@ -292,6 +292,9 @@ func TestAttachmentGenerateRequirements(t *testing.T) {
 	if len(prj.D.Requirements) != 1 || prj.D.Requirements[0].Name != "R1" {
 		t.Fatalf("unexpected requirements: %#v", prj.D.Requirements)
 	}
+	if prj.D.Requirements[0].ID != 1 {
+		t.Fatalf("ID not assigned: %#v", prj.D.Requirements[0])
+	}
 	if prj.D.Requirements[0].AttachmentIndex != 0 {
 		t.Fatalf("attachment index not set: %#v", prj.D.Requirements[0])
 	}
@@ -403,6 +406,9 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	if prj.D.Requirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not appended")
 	}
+	if prj.D.Requirements[0].ID == 0 {
+		t.Fatalf("ID not set: %#v", prj.D.Requirements[0])
+	}
 	if prj.D.Requirements[0].AttachmentIndex != 0 {
 		t.Fatalf("attachment index not set: %#v", prj.D.Requirements[0])
 	}
@@ -416,6 +422,9 @@ func TestAddAttachmentAnalyzesAndAppendsRequirements(t *testing.T) {
 	}
 	if prjReload.D.Requirements[0].Name != mockReqs[0].Name {
 		t.Fatalf("requirements not persisted: %#v", prjReload.D.Requirements)
+	}
+	if prjReload.D.Requirements[0].ID == 0 {
+		t.Fatalf("ID not persisted: %#v", prjReload.D.Requirements[0])
 	}
 	if prjReload.D.Requirements[0].AttachmentIndex != 0 {
 		t.Fatalf("attachment index not persisted: %#v", prjReload.D.Requirements[0])
