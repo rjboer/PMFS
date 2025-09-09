@@ -41,6 +41,7 @@ func (r *Requirement) SuggestOthers(prj *ProjectType) ([]Requirement, error) {
 			reqs[i].Condition.AIgenerated = true
 		}
 		prj.D.Requirements = Deduplicate(append(prj.D.Requirements, reqs...), false)
+		prj.ensureRequirementIDs()
 		if err := prj.Save(); err != nil {
 			return nil, err
 		}

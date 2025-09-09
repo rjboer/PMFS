@@ -38,6 +38,9 @@ func TestRequirementSuggestOthers(t *testing.T) {
 	if len(prj.D.Requirements) != 2 {
 		t.Fatalf("requirements not deduplicated: %#v", prj.D.Requirements)
 	}
+	if prj.D.Requirements[0].ID != 1 || prj.D.Requirements[1].ID != 2 {
+		t.Fatalf("IDs not assigned: %#v", prj.D.Requirements)
+	}
 	if prj.D.Requirements[1].ParentID != 0 {
 		t.Fatalf("parent index not set: %#v", prj.D.Requirements[1])
 	}
