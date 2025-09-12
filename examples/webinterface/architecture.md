@@ -43,8 +43,9 @@ flowchart LR
 
         EXGET["GET /projects/:prid/export/excel"]
         EXSTR["GET /projects/:prid/export/struct"]
-        PRSTRUCT["GET /projects/:prid/struct"]
         DESIGNGET["GET /projects/:prid/design"]
+        PRSTRUCT["GET /projects/:prid/struct{?depth,status,page}"]
+
         IMPOST["POST /projects/:prid/import/excel"]
     end
 
@@ -77,8 +78,11 @@ flowchart LR
 
         ExportExcel["ExportProjectExcel(prid)"]
         ExportStruct["ExportProjectStruct(prid)"]
-        GetStruct["GetProjectStruct(prid)"]
+
         GetDesign["GetProjectDesign(prid)"]
+
+        GetStruct["GetProjectStruct(prid, depth?, status?, page?)"]
+
         ImportExcel["ImportProjectExcel(prid, file)"]
     end
 
@@ -155,6 +159,6 @@ This extended interface diagram maps HTTP endpoints in the web interface to back
 ### Import/Export Endpoints
 - `GET /projects/:prid/export/excel` – export project data to an Excel file.
 - `GET /projects/:prid/export/struct` – export the project structure.
-- `GET /projects/:prid/struct` – retrieve the project structure.
+- `GET /projects/:prid/struct` – retrieve the entire project structure by default. Optional query parameters `depth`, `status`, and `page` limit the depth, filter by requirement status, and paginate results.
 - `POST /projects/:prid/import/excel` – import project data from an Excel file.
 
