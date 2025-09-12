@@ -169,7 +169,7 @@ func TestProjectImportExcelSyncByID(t *testing.T) {
 	}
 
 	prj := &ProjectType{D: ProjectData{Requirements: []Requirement{{ID: 1, Name: "Old", CreatedAt: time.Now(), UpdatedAt: time.Now()}}}}
-	if err := prj.ImportExcel(tmp.Name()); err != nil {
+	if err := prj.ImportExcel(tmp.Name(), false); err != nil {
 		t.Fatalf("ImportExcel: %v", err)
 	}
 	if len(prj.D.Requirements) != 2 {
@@ -180,5 +180,40 @@ func TestProjectImportExcelSyncByID(t *testing.T) {
 	}
 	if prj.D.Requirements[1].ID != 2 || prj.D.Requirements[1].Name != "New" {
 		t.Fatalf("new requirement not added: %#v", prj.D.Requirements[1])
+	}
+}
+
+func TestProjectImportExcelReplace(t *testing.T) {
+	now := time.Now().Format(time.RFC3339)
+	f := excelize.NewFile()
+	defer f.Close()
+
+	header := []interface{}{"Field", "Value"}
+	_ = f.SetSheetRow("Sheet1", "A1", &header)
+	_ = f.SetSheetRow("Sheet1", "A2", &[]interface{}{"Name", "Test"})
+	f.SetSheetName("Sheet1", "Project")
+
+	f.NewSheet("Requirements")
+	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted"}
+	_ = f.SetSheetRow("Requirements", "A1", &reqHeader)
+	row := []interface{}{0, "New", "d", 0, 0, "", "", now, now, 0, 0, "", "", "false", "false", "false", "false", "false"}
+	_ = f.SetSheetRow("Requirements", "A2", &row)
+
+	tmp, err := os.CreateTemp("", "replace-*.xlsx")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	tmp.Close()
+	defer os.Remove(tmp.Name())
+	if err := f.SaveAs(tmp.Name()); err != nil {
+		t.Fatalf("SaveAs: %v", err)
+	}
+
+	prj := &ProjectType{D: ProjectData{Requirements: []Requirement{{ID: 1, Name: "Old"}}}}
+	if err := prj.ImportExcel(tmp.Name(), true); err != nil {
+		t.Fatalf("ImportExcel replace: %v", err)
+	}
+	if len(prj.D.Requirements) != 1 || prj.D.Requirements[0].Name != "New" {
+		t.Fatalf("replace did not overwrite requirements: %#v", prj.D.Requirements)
 	}
 }

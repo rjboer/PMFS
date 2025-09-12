@@ -1,6 +1,6 @@
 # Function Reference
 
-This document lists exported functions across the PMFS repository and summarises their behaviour.
+This document lists exported functions across the PMFS repository and summarizes their behavior.
 
 ## Package `PMFS`
 
@@ -13,14 +13,14 @@ Initialises the on-disk layout at the given path, loads the database and sets th
 ### (*Database) Save
 Persists the in-memory database back to `index.toml`.
 
-### (*Requirement) Analyse
+### (*Requirement) Analyze
 Asks the configured LLM a role/question pair about the requirement's description.
 
 ### (*Requirement) EvaluateGates
 Runs quality gates against the requirement using the configured LLM and stores the results.
 
 ### (*Requirement) QualityControlAI
-Combines Analyse and EvaluateGates, marking the requirement as analysed.
+Combines Analyze and EvaluateGates, marking the requirement as analyzed.
 
 ### (*DesignAspect) EvaluateDesignGates
 Evaluates gate checks for each template requirement in the design aspect.
@@ -32,12 +32,12 @@ Converts a Gemini requirement value into a PMFS requirement structure.
 Merges near-identical requirements, optionally ignoring proposed ones.
 
 ### (*Attachment) Analyze
-Invokes the LLM to analyse the attachment and extract intelligence.
+Invokes the LLM to analyze the attachment and extract intelligence.
 
 ### (*Attachment) GenerateRequirements
 Generates requirements from the attachment and appends them to the project.
 
-### (*Attachment) Analyse
+### (*Attachment) AnalyzeWithRole
 Runs a role/question pair against the attachment using the project's LLM client.
 
 ### (*Database) NewProduct
@@ -71,10 +71,10 @@ Loads all projects for all products in the database.
 Scans a directory and ingests each regular file as an attachment.
 
 ### (*ProjectType) AddAttachmentFromInput
-Moves a file from an input folder into the project's attachments and analyses it.
+Moves a file from an input folder into the project's attachments and analyzes it.
 
 ### (*ProjectType) AddAttachmentFromText
-Creates an attachment from text content and analyses it.
+Creates an attachment from text content and analyzes it.
 
 ### (*ProjectType) ActivateRequirementByID
 Marks the requirement with the given ID as active.
@@ -82,16 +82,22 @@ Marks the requirement with the given ID as active.
 ### (*ProjectType) ActivateRequirementsWhere
 Activates all requirements matching the provided predicate.
 
+### (*ProjectType) DeleteRequirementByID
+Marks the requirement with the given ID as deleted.
+
+### (*ProjectType) RestoreRequirementByID
+Clears the deleted flag on the requirement with the given ID.
+
 ### (*ProjectType) AddRequirement
 Appends a requirement to the project and persists it.
 
 ### (*ProjectType) GenerateDesignAspectsAll
 Generates design aspects for all requirements and saves the project.
 
-### (*ProjectType) QualityControlScanALL
-Runs QualityControlAI for every requirement that has not yet been analysed.
+### (*ProjectType) QualityControlPending
+Runs QualityControlAI for every active requirement that has not yet been analyzed.
 
-### (*ProjectType) AnalyseAll
+### (*ProjectType) AnalyzeAll
 Runs QualityControlAI on all non-proposed, non-deleted requirements and saves results.
 
 ### (*Requirement) SuggestOthers
@@ -110,7 +116,7 @@ Writes project data to an Excel workbook.
 Reads an Excel workbook and returns populated `ProjectData`.
 
 ### (*ProjectType) ImportExcel
-Merges data from an Excel workbook into the project.
+Merges data from an Excel workbook into the project. The `replace` flag discards existing requirements before import when set to true.
 
 ### (*ProjectType) Attachments
 Returns an `AttachmentManager` for the project.
@@ -132,7 +138,7 @@ Wraps a client with simple request-per-second rate limiting.
 Replaces the package's LLM client and returns the previous one.
 
 ### AnalyzeAttachment
-Uploads and analyses a file using the configured client.
+Uploads and analyzes a file using the configured client.
 
 ### Ask
 Sends a prompt to the configured client and returns the response.
@@ -160,7 +166,7 @@ Retrieves a gate definition by ID.
 Replaces the Gemini client used by the package and returns the previous one.
 
 ### AnalyzeAttachment
-Uploads and analyses a file using the Gemini API.
+Uploads and analyzes a file using the Gemini API.
 
 ### Ask
 Sends a prompt to Gemini and returns the response.

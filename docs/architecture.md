@@ -42,8 +42,10 @@ flowchart TD
     O --> RP
     RA --> M[Requirement.SuggestOthers]
     M --> RP
-    RA --> RD[Mark requirement Deleted]
+    RA --> RD[Project.DeleteRequirementByID]
     RD --> RP
+    RP --> RU[Project.RestoreRequirementByID]
+    RU --> RA
     RP --> P[Deduplication of requirements]
   end
 
@@ -75,4 +77,5 @@ flowchart TD
 1. `Proposed` (often `AIgenerated`) → `Active` via activation.
 2. `Proposed` → `Deleted` when a candidate is discarded.
 3. `Active` → `Deleted` if an accepted requirement is later removed.
+4. `Deleted` → `Active` when restored.
 

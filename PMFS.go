@@ -219,10 +219,9 @@ func FromGemini(req gemini.Requirement) Requirement {
 	}
 }
 
-// Analyse sends the requirement description to the provided role/question pair
-
+// Analyze sends the requirement description to the provided role/question pair
 // using the database's configured LLM and returns the result.
-func (r *Requirement) Analyse(role, questionID string) (bool, string, error) {
+func (r *Requirement) Analyze(role, questionID string) (bool, string, error) {
 	return interact.RunQuestion(DB.LLM, role, questionID, r.Description)
 }
 
@@ -238,10 +237,10 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 	return nil
 }
 
-// QualityControlAI runs Analyse and EvaluateGates on the requirement.
-// It returns the result of Analyse and stores gate evaluation results on the requirement.
+// QualityControlAI runs Analyze and EvaluateGates on the requirement.
+// It returns the result of Analyze and stores gate evaluation results on the requirement.
 func (r *Requirement) QualityControlAI(role, questionID string, gateIDs []string) (bool, string, error) {
-	pass, ans, err := r.Analyse(role, questionID)
+	pass, ans, err := r.Analyze(role, questionID)
 	if err != nil {
 		return pass, ans, err
 	}
@@ -460,11 +459,11 @@ func (att *Attachment) GenerateRequirements(prj *ProjectType, strategy string) e
 	return nil
 }
 
-// Analyse loads the attachment content and asks a role-specific question about it.
+// AnalyzeWithRole loads the attachment content and asks a role-specific question about it.
 // For text files the content is read directly; for other files existing upload
 // logic is used to extract textual content before querying the LLM.
 
-func (att *Attachment) Analyse(role, questionID string, prj *ProjectType) (bool, string, error) {
+func (att *Attachment) AnalyzeWithRole(role, questionID string, prj *ProjectType) (bool, string, error) {
 
 	full := filepath.Join(projectDir(prj.ProductID, prj.ID), att.RelPath)
 	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(full)))
@@ -1042,6 +1041,30 @@ func (prj *ProjectType) ActivateRequirementsWhere(pred func(Requirement) bool) {
 	_ = prj.Save()
 }
 
+// DeleteRequirementByID marks the requirement with the given ID as deleted.
+// The change is persisted to disk.
+func (prj *ProjectType) DeleteRequirementByID(id int) {
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID == id {
+			prj.D.Requirements[i].Condition.Deleted = true
+			_ = prj.Save()
+			return
+		}
+	}
+}
+
+// RestoreRequirementByID clears the deleted flag on the requirement with the given ID.
+// The change is persisted to disk.
+func (prj *ProjectType) RestoreRequirementByID(id int) {
+	for i := range prj.D.Requirements {
+		if prj.D.Requirements[i].ID == id {
+			prj.D.Requirements[i].Condition.Deleted = false
+			_ = prj.Save()
+			return
+		}
+	}
+}
+
 // ensureRequirementIDs assigns monotonically increasing IDs to any requirements
 // missing one. It preserves existing IDs and fills gaps based on the current
 // maximum ID.
@@ -1084,23 +1107,25 @@ func (prj *ProjectType) GenerateDesignAspectsAll() error {
 	return prj.Save()
 }
 
-// QualityControlScanALL runs QualityControlAI on every requirement in the project.
-func (prj *ProjectType) QualityControlScanALL(role, questionID string, gateIDs []string) error {
+// QualityControlPending runs QualityControlAI on each active requirement that
+// has not yet been analyzed. Proposed or deleted requirements are skipped.
+func (prj *ProjectType) QualityControlPending(role, questionID string, gateIDs []string) error {
 	for i := range prj.D.Requirements {
-		if prj.D.Requirements[i].Condition.AIanalyzed {
+		req := &prj.D.Requirements[i]
+		if req.Condition.Proposed || req.Condition.Deleted || req.Condition.AIanalyzed {
 			continue
 		}
-		if _, _, err := prj.D.Requirements[i].QualityControlAI(role, questionID, gateIDs); err != nil {
+		if _, _, err := req.QualityControlAI(role, questionID, gateIDs); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// AnalyseAll runs QualityControlAI on all requirements.
-// It processes all requirements, returning the first error encountered, and
-// persists any gate evaluation results.
-func (prj *ProjectType) AnalyseAll(role, questionID string, gateIDs []string) error {
+// AnalyzeAll runs QualityControlAI on all non-proposed, non-deleted requirements,
+// ignoring whether they were previously analyzed. It returns the first error
+// encountered and persists any gate evaluation results.
+func (prj *ProjectType) AnalyzeAll(role, questionID string, gateIDs []string) error {
 	var firstErr error
 
 	for i := range prj.D.Requirements {

@@ -1,9 +1,9 @@
-# Analyse Example
+# Analyze Example
 
 - **Purpose:** Analyze a document attachment with a role-specific question.
-- **Key PMFS methods:** `LoadSetup`, `Attachment.Analyse`
+- **Key PMFS methods:** `LoadSetup`, `Attachment.AnalyzeWithRole`
 - **Requires:** `GEMINI_API_KEY`
 - **Run:**
   ```bash
-  go run ./examples/analyse
+  go run ./examples/analyze
   ```
