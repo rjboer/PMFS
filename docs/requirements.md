@@ -26,6 +26,7 @@ This document outlines the key functional requirements for the PMFS library.
 ## Excel Interoperability
 - Export project data to Excel workbooks and import data back into the project,
   merging new and existing requirements.
+- There should be an option to add the merged requirements to the current set or replace all current ones. 
 
 ## LLM Integration
 - Interact with Gemini via a pluggable client with configurable model and
