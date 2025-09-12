@@ -298,8 +298,10 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 
 // ImportExcel merges data from an Excel workbook into the project. Existing
 // requirements are updated based on their ID, while new ones are appended. Any
-// requirements lacking an ID receive one based on the current maximum.
-func (p *ProjectType) ImportExcel(path string) error {
+// requirements lacking an ID receive one based on the current maximum. When
+// replace is true, the current requirements are discarded and replaced by the
+// imported set.
+func (p *ProjectType) ImportExcel(path string, replace bool) error {
 	pd, err := ImportProjectExcel(path)
 	if err != nil {
 		return err
@@ -322,6 +324,12 @@ func (p *ProjectType) ImportExcel(path string) error {
 	}
 	if pd.Priority != "" {
 		p.D.Priority = pd.Priority
+	}
+
+	if replace {
+		p.D.Requirements = pd.Requirements
+		p.ensureRequirementIDs()
+		return nil
 	}
 
 	existing := make(map[int]*Requirement)
