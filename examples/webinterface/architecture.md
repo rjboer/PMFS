@@ -18,16 +18,19 @@ flowchart LR
     subgraph Interface
         PPOST["POST /products"]
         PGET["GET /products/:id"]
+        PGETALL["GET /products"]
         PPUT["PUT /products/:id"]
         PDEL["DELETE /products/:id"]
 
         PRPOST["POST /products/:pid/projects"]
         PRGET["GET /products/:pid/projects/:id"]
+        PRGETALL["GET /products/:pid/projects"]
         PRPUT["PUT /products/:pid/projects/:id"]
         PRDEL["DELETE /products/:pid/projects/:id"]
 
         RPOST["POST /projects/:prid/requirements"]
         RGET["GET /projects/:prid/requirements/:id"]
+        RGETALL["GET /projects/:prid/requirements"]
         RPUT["PUT /projects/:prid/requirements/:id"]
         RDEL["DELETE /projects/:prid/requirements/:id"]
 
@@ -40,6 +43,7 @@ flowchart LR
 
         EXGET["GET /projects/:prid/export/excel"]
         EXSTR["GET /projects/:prid/export/struct"]
+        PRSTRUCT["GET /projects/:prid/struct"]
         IMPOST["POST /projects/:prid/import/excel"]
     end
 
@@ -47,16 +51,19 @@ flowchart LR
     subgraph Functions
         CreateProduct["CreateProduct(data)"]
         GetProduct["GetProduct(id)"]
+        GetProducts["GetProducts()"]
         UpdateProduct["UpdateProduct(id, data)"]
         DeleteProduct["DeleteProduct(id)"]
 
         CreateProject["CreateProject(pid, data)"]
         GetProject["GetProject(pid, id)"]
+        GetProjects["GetProjects(pid)"]
         UpdateProject["UpdateProject(pid, id, data)"]
         DeleteProject["DeleteProject(pid, id)"]
 
         CreateRequirement["CreateRequirement(prid, data)"]
         GetRequirement["GetRequirement(prid, id)"]
+        GetRequirements["GetRequirements(prid)"]
         UpdateRequirement["UpdateRequirement(prid, id, data)"]
         DeleteRequirement["DeleteRequirement(prid, id)"]
 
@@ -69,22 +76,26 @@ flowchart LR
 
         ExportExcel["ExportProjectExcel(prid)"]
         ExportStruct["ExportProjectStruct(prid)"]
+        GetStruct["GetProjectStruct(prid)"]
         ImportExcel["ImportProjectExcel(prid, file)"]
     end
 
     %% Mappings between interface endpoints and backend functions
     PPOST --> CreateProduct
     PGET --> GetProduct
+    PGETALL --> GetProducts
     PPUT --> UpdateProduct
     PDEL --> DeleteProduct
 
     PRPOST --> CreateProject
     PRGET --> GetProject
+    PRGETALL --> GetProjects
     PRPUT --> UpdateProject
     PRDEL --> DeleteProject
 
     RPOST --> CreateRequirement
     RGET --> GetRequirement
+    RGETALL --> GetRequirements
     RPUT --> UpdateRequirement
     RDEL --> DeleteRequirement
 
@@ -97,6 +108,7 @@ flowchart LR
 
     EXGET --> ExportExcel
     EXSTR --> ExportStruct
+    PRSTRUCT --> GetStruct
     IMPOST --> ImportExcel
 ```
 
@@ -107,18 +119,21 @@ This extended interface diagram maps HTTP endpoints in the web interface to back
 ### Product Endpoints
 - `POST /products` – create a product.
 - `GET /products/:id` – retrieve a product by its identifier.
+- `GET /products` – retrieve all products.
 - `PUT /products/:id` – update an existing product.
 - `DELETE /products/:id` – remove a product.
 
 ### Project Endpoints
 - `POST /products/:pid/projects` – create a project under a product.
 - `GET /products/:pid/projects/:id` – retrieve a project within a product.
+- `GET /products/:pid/projects` – retrieve all projects under a product.
 - `PUT /products/:pid/projects/:id` – update a project belonging to a product.
 - `DELETE /products/:pid/projects/:id` – delete a project from a product.
 
 ### Requirement Endpoints
 - `POST /projects/:prid/requirements` – create a requirement for a project.
 - `GET /projects/:prid/requirements/:id` – retrieve a requirement.
+- `GET /projects/:prid/requirements` – retrieve all requirements for a project.
 - `PUT /projects/:prid/requirements/:id` – update a requirement.
 - `DELETE /projects/:prid/requirements/:id` – remove a requirement.
 
@@ -134,5 +149,6 @@ This extended interface diagram maps HTTP endpoints in the web interface to back
 ### Import/Export Endpoints
 - `GET /projects/:prid/export/excel` – export project data to an Excel file.
 - `GET /projects/:prid/export/struct` – export the project structure.
+- `GET /projects/:prid/struct` – retrieve the project structure.
 - `POST /projects/:prid/import/excel` – import project data from an Excel file.
 
