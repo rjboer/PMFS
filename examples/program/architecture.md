@@ -33,6 +33,12 @@ flowchart TD
     O -->|Export Project| O3[exportProjectStruct]
     O -->|Import Excel| O2[importExcel]
     O -->|Back| K
+    O2 --> P{Import mode}
+    P -->|Replace| Q[replace requirements]
+    P -->|Add| R[add requirements]
+    Q --> S[renumber IDs]
+    R --> S
+    S --> K
 ```
 
 This diagram outlines the main control flow of the interactive example program.

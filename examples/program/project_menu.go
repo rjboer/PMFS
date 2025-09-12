@@ -212,7 +212,16 @@ func exportProjectStruct(scanner *bufio.Scanner, prj *PMFS.ProjectType) {
 	fmt.Printf("Project struct exported to %s\n", path)
 }
 
-// importExcel loads project data from an Excel file and merges it into the current project or creates a new one when no project exists.
+// renumberRequirementIDs assigns sequential IDs starting at 1 to all
+// requirements in the project.
+func renumberRequirementIDs(prj *PMFS.ProjectType) {
+	for i := range prj.D.Requirements {
+		prj.D.Requirements[i].ID = i + 1
+	}
+}
+
+// importExcel loads project data from an Excel file and either replaces the
+// current requirement set or adds to it, renumbering requirements afterwards.
 func importExcel(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.ProjectType) {
 	fmt.Print("Path to Excel file: ")
 	if !scanner.Scan() {
@@ -238,20 +247,51 @@ func importExcel(scanner *bufio.Scanner, p *PMFS.ProductType, prj **PMFS.Project
 			return
 		}
 		*prj = np
+		renumberRequirementIDs(*prj)
+		if err := (*prj).Save(); err != nil {
+			log.Printf("Save project: %v", err)
+		}
+		if err := PMFS.DB.Save(); err != nil {
+			log.Printf("Save DB: %v", err)
+		}
 		fmt.Println("Created new project from Excel data.")
-	} else {
-		(*prj).Name = data.Name
-		(*prj).D.Name = data.Name
-		(*prj).D.Scope = data.Scope
-		(*prj).D.StartDate = data.StartDate
-		(*prj).D.EndDate = data.EndDate
-		(*prj).D.Status = data.Status
-		(*prj).D.Priority = data.Priority
-		(*prj).D.Requirements = append((*prj).D.Requirements, data.Requirements...)
-		(*prj).D.Intelligence = append((*prj).D.Intelligence, data.Intelligence...)
-		fmt.Println("Merged Excel data into current project.")
+		return
 	}
 
+	options := []string{
+		"Replace existing requirements",
+		"Add to existing requirements",
+		"Cancel",
+	}
+	idx, err := menuSelect("Import mode", options)
+	if err != nil || idx == 2 {
+		fmt.Println("Import cancelled.")
+		return
+	}
+
+	(*prj).Name = data.Name
+	(*prj).D.Name = data.Name
+	(*prj).D.Scope = data.Scope
+	(*prj).D.StartDate = data.StartDate
+	(*prj).D.EndDate = data.EndDate
+	(*prj).D.Status = data.Status
+	(*prj).D.Priority = data.Priority
+
+	if idx == 0 {
+		(*prj).D.Requirements = data.Requirements
+		(*prj).D.Intelligence = data.Intelligence
+		fmt.Println("Replaced current requirements with Excel data.")
+	} else {
+		(*prj).D.Requirements = append((*prj).D.Requirements, data.Requirements...)
+		(*prj).D.Intelligence = append((*prj).D.Intelligence, data.Intelligence...)
+		fmt.Println("Added Excel requirements to current project.")
+	}
+
+	renumberRequirementIDs(*prj)
+
+	if err := (*prj).Save(); err != nil {
+		log.Printf("Save project: %v", err)
+	}
 	if err := PMFS.DB.Save(); err != nil {
 		log.Printf("Save DB: %v", err)
 	}
