@@ -43,7 +43,9 @@ flowchart LR
 
         EXGET["GET /projects/:prid/export/excel"]
         EXSTR["GET /projects/:prid/export/struct"]
+        DESIGNGET["GET /projects/:prid/design"]
         PRSTRUCT["GET /projects/:prid/struct{?depth,status,page}"]
+
         IMPOST["POST /projects/:prid/import/excel"]
     end
 
@@ -76,7 +78,11 @@ flowchart LR
 
         ExportExcel["ExportProjectExcel(prid)"]
         ExportStruct["ExportProjectStruct(prid)"]
+
+        GetDesign["GetProjectDesign(prid)"]
+
         GetStruct["GetProjectStruct(prid, depth?, status?, page?)"]
+
         ImportExcel["ImportProjectExcel(prid, file)"]
     end
 
@@ -109,6 +115,7 @@ flowchart LR
     EXGET --> ExportExcel
     EXSTR --> ExportStruct
     PRSTRUCT --> GetStruct
+    DESIGNGET --> GetDesign
     IMPOST --> ImportExcel
 ```
 
@@ -145,6 +152,9 @@ This extended interface diagram maps HTTP endpoints in the web interface to back
 ### Analysis Endpoints
 - `POST /requirements/:rid/analyze` – analyze a requirement.
 - `GET /requirements/:rid/suggestions` – suggest related requirements.
+
+### Design Endpoints
+- `GET /projects/:prid/design` – retrieve design documentation for a project.
 
 ### Import/Export Endpoints
 - `GET /projects/:prid/export/excel` – export project data to an Excel file.
