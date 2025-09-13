@@ -110,6 +110,20 @@ async function loadRequirements(){
     const label = document.createElement('span');
     label.textContent = r.name || r.description || `Requirement ${r.id}`;
     div.appendChild(label);
+
+    const attIdx = r.attachment_index;
+    if(attIdx >= 0 && data.attachments && attIdx < data.attachments.length){
+      const att = data.attachments[attIdx];
+      const attDiv = document.createElement('div');
+      const link = document.createElement('a');
+      link.href = `/requirements/${r.id}/attachments/${att.id}`;
+      link.textContent = att.filename;
+      link.target = '_blank';
+      attDiv.textContent = 'Attachment: ';
+      attDiv.appendChild(link);
+      div.appendChild(attDiv);
+    }
+
     reqsDiv.appendChild(div);
   });
 }
