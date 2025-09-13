@@ -21,6 +21,9 @@
 
 <section>
   <h2>Requirements</h2>
+  <select id="requirements"></select>
+  <input type="file" id="fileInput" />
+  <button onclick="uploadAttachment()">Upload</button>
   <pre id="reqs"></pre>
 </section>
 
@@ -66,11 +69,38 @@ async function loadRequirements(){
   const pid = document.getElementById('projects').value;
   if(!pid){
     document.getElementById('reqs').textContent = '';
+    document.getElementById('requirements').innerHTML = '';
     return;
   }
   const res = await fetch(`/projects/${pid}/struct`, {headers:{'X-Role':'viewer'}});
   const data = await res.json();
-  document.getElementById('reqs').textContent = JSON.stringify(data.requirements, null, 2);
+  const sel = document.getElementById('requirements');
+  sel.innerHTML = '';
+  data.requirements.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.name || r.description || `Requirement ${r.id}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('reqs').textContent = JSON.stringify({requirements: data.requirements, attachments: data.attachments}, null, 2);
+}
+
+async function uploadAttachment(){
+  const rid = document.getElementById('requirements').value;
+  const fileInput = document.getElementById('fileInput');
+  if(!rid || fileInput.files.length === 0){
+    return;
+  }
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+  const res = await fetch(`/requirements/${rid}/attachments`, {method:'POST', headers:{'X-Role':'editor'}, body: form});
+  if(res.ok){
+    fileInput.value = '';
+    await loadRequirements();
+  } else {
+    const msg = await res.text();
+    alert(msg);
+  }
 }
 
 loadProducts();
