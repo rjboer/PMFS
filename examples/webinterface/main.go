@@ -43,7 +43,7 @@ func main() {
 	s := &server{db: db, subs: make(map[int][]chan struct{})}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	indexHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := staticFS.ReadFile("index.html")
 		if err != nil {
 			http.Error(w, "index not found", http.StatusInternalServerError)
@@ -52,6 +52,8 @@ func main() {
 		w.Header().Set("Content-Type", "text/html")
 		w.Write(b)
 	})
+	mux.Handle("/", indexHandler)
+	mux.Handle("/examples/webinterface/", indexHandler)
 	mux.HandleFunc("/products", s.handleProducts)
 	mux.HandleFunc("/products/", s.handleProducts)
 	mux.HandleFunc("/projects/", s.handleProjects)
