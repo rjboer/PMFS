@@ -30,6 +30,7 @@
     <button onclick="exportProject('csv')">Export CSV</button>
     <button onclick="exportProject('struct')">Export Struct</button>
   </div>
+
   <div>
     <input type="file" id="excelImport" />
     <button onclick="importExcel()">Import Excel</button>
@@ -146,6 +147,7 @@ async function loadRequirements(){
     opt.textContent = r.name || r.description || `Requirement ${r.id}`;
     sel.appendChild(opt);
 
+
     const tr = document.createElement('tr');
     const tdId = document.createElement('td');
     tdId.textContent = r.id;
@@ -162,6 +164,7 @@ async function loadRequirements(){
     tdAtt.textContent = attCount;
     tr.appendChild(tdAtt);
     reqsBody.appendChild(tr);
+
   });
   document.getElementById('pageNumber').textContent = `Page ${currentPage}`;
   document.getElementById('prevPage').disabled = currentPage <= 1;
@@ -210,7 +213,8 @@ async function exportProject(type){
   }
 }
 
-async function importExcel(){
+async function importExcel(event){
+  event.preventDefault();
   const pid = document.getElementById('projects').value;
   const input = document.getElementById('excelImport');
   if(!pid || input.files.length === 0){
