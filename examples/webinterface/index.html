@@ -30,10 +30,10 @@
     <button onclick="exportProject('csv')">Export CSV</button>
     <button onclick="exportProject('struct')">Export Struct</button>
   </div>
-  <div>
-    <input type="file" id="excelImport" />
-    <button onclick="importExcel()">Import Excel</button>
-  </div>
+  <form id="importExcelForm" onsubmit="importExcel(event)" enctype="multipart/form-data">
+    <input type="file" id="excelImport" name="file" />
+    <button type="submit">Import Excel</button>
+  </form>
   <pre id="reqs"></pre>
 
 </section>
@@ -156,7 +156,8 @@ async function exportProject(type){
   }
 }
 
-async function importExcel(){
+async function importExcel(event){
+  event.preventDefault();
   const pid = document.getElementById('projects').value;
   const input = document.getElementById('excelImport');
   if(!pid || input.files.length === 0){
