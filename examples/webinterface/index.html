@@ -15,7 +15,7 @@
 
 <section>
   <h2>Projects</h2>
-  <select id="projects" onchange="loadRequirements()"></select>
+  <select id="projects" onchange="changeProject()"></select>
   <button onclick="loadProjects()">Refresh</button>
 </section>
 
@@ -30,15 +30,37 @@
     <button onclick="exportProject('csv')">Export CSV</button>
     <button onclick="exportProject('struct')">Export Struct</button>
   </div>
-  <form id="importExcelForm" onsubmit="importExcel(event)" enctype="multipart/form-data">
-    <input type="file" id="excelImport" name="file" />
-    <button type="submit">Import Excel</button>
-  </form>
-  <pre id="reqs"></pre>
+
+  <div>
+    <input type="file" id="excelImport" />
+    <button onclick="importExcel()">Import Excel</button>
+  </div>
+  <div>
+    <label for="statusFilter">Status:</label>
+    <select id="statusFilter" onchange="resetPageAndLoad()">
+      <option value="">All</option>
+      <option value="active">Active</option>
+      <option value="proposed">Proposed</option>
+      <option value="deleted">Deleted</option>
+    </select>
+    <button id="prevPage" onclick="changePage(-1)">Prev</button>
+    <span id="pageNumber"></span>
+    <button id="nextPage" onclick="changePage(1)">Next</button>
+  </div>
+  <table border="1">
+    <thead>
+      <tr><th>ID</th><th>Text</th><th>Status</th><th>Attachments</th></tr>
+    </thead>
+    <tbody id="reqs"></tbody>
+  </table>
 
 </section>
 
 <script>
+let currentPage = 1;
+const pageSize = 10;
+let evtSource = null;
+
 async function loadProducts(){
   const res = await fetch('/products', {headers:{'X-Role':'viewer'}});
   const data = await res.json();
@@ -70,10 +92,39 @@ async function loadProjects(){
   });
   if(data.length){
     sel.value = data[0].id;
-    await loadRequirements();
+    await changeProject();
   } else {
   document.getElementById('reqs').innerHTML = '';
   }
+}
+
+async function changeProject(){
+  currentPage = 1;
+  await loadRequirements();
+  subscribeToProject();
+}
+
+async function resetPageAndLoad(){
+  currentPage = 1;
+  await loadRequirements();
+}
+
+function changePage(delta){
+  currentPage += delta;
+  if(currentPage < 1) currentPage = 1;
+  loadRequirements();
+}
+
+function subscribeToProject(){
+  if(evtSource){
+    evtSource.close();
+  }
+  const pid = document.getElementById('projects').value;
+  if(!pid) return;
+  evtSource = new EventSource(`/projects/${pid}/struct/subscribe`);
+  evtSource.addEventListener('update', () => {
+    loadRequirements();
+  });
 }
 
 async function loadRequirements(){
@@ -83,56 +134,41 @@ async function loadRequirements(){
     document.getElementById('requirements').innerHTML = '';
     return;
   }
-  const res = await fetch(`/projects/${pid}/struct`, {headers:{'X-Role':'viewer'}});
+  const status = document.getElementById('statusFilter').value;
+  const res = await fetch(`/projects/${pid}/struct?status=${status}&page=${currentPage}&page_size=${pageSize}`, {headers:{'X-Role':'viewer'}});
   const data = await res.json();
   const sel = document.getElementById('requirements');
   sel.innerHTML = '';
-  const reqsDiv = document.getElementById('reqs');
-  reqsDiv.innerHTML = '';
+  const reqsBody = document.getElementById('reqs');
+  reqsBody.innerHTML = '';
   data.requirements.forEach(r => {
     const opt = document.createElement('option');
     opt.value = r.id;
     opt.textContent = r.name || r.description || `Requirement ${r.id}`;
     sel.appendChild(opt);
 
-    const div = document.createElement('div');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = r.condition && r.condition.active;
-    checkbox.onchange = async () => {
-      const res = await fetch(`/projects/${pid}/requirements/${r.id}/active`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json', 'X-Role': 'editor'},
-        body: JSON.stringify({active: checkbox.checked})
-      });
-      if(!res.ok){
-        const msg = await res.text();
-        alert(msg);
-        checkbox.checked = !checkbox.checked;
-        return;
-      }
-      await loadRequirements();
-    };
-    div.appendChild(checkbox);
-    const label = document.createElement('span');
-    label.textContent = r.name || r.description || `Requirement ${r.id}`;
-    div.appendChild(label);
 
-    const attIdx = r.attachment_index;
-    if(attIdx >= 0 && data.attachments && attIdx < data.attachments.length){
-      const att = data.attachments[attIdx];
-      const attDiv = document.createElement('div');
-      const link = document.createElement('a');
-      link.href = `/requirements/${r.id}/attachments/${att.id}`;
-      link.textContent = att.filename;
-      link.target = '_blank';
-      attDiv.textContent = 'Attachment: ';
-      attDiv.appendChild(link);
-      div.appendChild(attDiv);
-    }
+    const tr = document.createElement('tr');
+    const tdId = document.createElement('td');
+    tdId.textContent = r.id;
+    tr.appendChild(tdId);
+    const tdText = document.createElement('td');
+    tdText.textContent = r.name || r.description || `Requirement ${r.id}`;
+    tr.appendChild(tdText);
+    const status = r.condition && r.condition.deleted ? 'deleted' : r.condition && r.condition.active ? 'active' : r.condition && r.condition.proposed ? 'proposed' : '';
+    const tdStatus = document.createElement('td');
+    tdStatus.textContent = status;
+    tr.appendChild(tdStatus);
+    const attCount = typeof r.attachment_index === 'number' && r.attachment_index >= 0 ? 1 : 0;
+    const tdAtt = document.createElement('td');
+    tdAtt.textContent = attCount;
+    tr.appendChild(tdAtt);
+    reqsBody.appendChild(tr);
 
-    reqsDiv.appendChild(div);
   });
+  document.getElementById('pageNumber').textContent = `Page ${currentPage}`;
+  document.getElementById('prevPage').disabled = currentPage <= 1;
+  document.getElementById('nextPage').disabled = data.requirements.length < pageSize;
 }
 
 async function uploadAttachment(){
