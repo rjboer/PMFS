@@ -24,7 +24,18 @@
   <select id="requirements"></select>
   <input type="file" id="fileInput" />
   <button onclick="uploadAttachment()">Upload</button>
-  <div id="reqs"></div>
+
+  <div>
+    <button onclick="exportProject('excel')">Export Excel</button>
+    <button onclick="exportProject('csv')">Export CSV</button>
+    <button onclick="exportProject('struct')">Export Struct</button>
+  </div>
+  <div>
+    <input type="file" id="excelImport" />
+    <button onclick="importExcel()">Import Excel</button>
+  </div>
+  <pre id="reqs"></pre>
+
 </section>
 
 <script>
@@ -114,6 +125,48 @@ async function uploadAttachment(){
   const res = await fetch(`/requirements/${rid}/attachments`, {method:'POST', headers:{'X-Role':'editor'}, body: form});
   if(res.ok){
     fileInput.value = '';
+    await loadRequirements();
+  } else {
+    const msg = await res.text();
+    alert(msg);
+  }
+}
+
+async function exportProject(type){
+  const pid = document.getElementById('projects').value;
+  if(!pid){
+    return;
+  }
+  const res = await fetch(`/projects/${pid}/export/${type}`, {headers:{'X-Role':'viewer'}});
+  if(res.ok){
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const name = type === 'excel' ? 'project.xlsx' : type === 'csv' ? 'project.csv' : 'project.json';
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    await loadRequirements();
+  } else {
+    const msg = await res.text();
+    alert(msg);
+  }
+}
+
+async function importExcel(){
+  const pid = document.getElementById('projects').value;
+  const input = document.getElementById('excelImport');
+  if(!pid || input.files.length === 0){
+    return;
+  }
+  const form = new FormData();
+  form.append('file', input.files[0]);
+  const res = await fetch(`/projects/${pid}/import/excel`, {method:'POST', headers:{'X-Role':'editor'}, body: form});
+  if(res.ok){
+    input.value = '';
     await loadRequirements();
   } else {
     const msg = await res.text();
