@@ -2,6 +2,7 @@ package PMFS
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -46,7 +47,22 @@ func (p *ProjectType) ExportExcel(path string) error {
 	if len(p.D.Requirements) > 0 {
 		sheet := "Requirements"
 		f.NewSheet(sheet)
+		gateSet := map[string]struct{}{}
+		for _, req := range p.D.Requirements {
+			for g := range req.Condition.GateResults {
+				gateSet[g] = struct{}{}
+			}
+		}
+		var gateIDs []string
+		for g := range gateSet {
+			gateIDs = append(gateIDs, g)
+		}
+		sort.Strings(gateIDs)
+
 		header := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted"}
+		for _, g := range gateIDs {
+			header = append(header, fmt.Sprintf("Gate:%s", g))
+		}
 		if err := f.SetSheetRow(sheet, "A1", &header); err != nil {
 			return err
 		}
@@ -70,6 +86,9 @@ func (p *ProjectType) ExportExcel(path string) error {
 				req.Condition.AIanalyzed,
 				req.Condition.Active,
 				req.Condition.Deleted,
+			}
+			for _, g := range gateIDs {
+				row = append(row, req.Condition.GateResults[g])
 			}
 			cell := fmt.Sprintf("A%d", i+2)
 			if err := f.SetSheetRow(sheet, cell, &row); err != nil {
@@ -190,6 +209,14 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 	if err != nil {
 		return nil, err
 	}
+	gateIdx := map[int]string{}
+	if len(reqRows) > 0 {
+		for idx, h := range reqRows[0] {
+			if strings.HasPrefix(h, "Gate:") {
+				gateIdx[idx] = strings.TrimPrefix(h, "Gate:")
+			}
+		}
+	}
 	for _, row := range reqRows[1:] {
 		if len(row) < 13 {
 			continue
@@ -243,6 +270,15 @@ func ImportProjectExcel(path string) (*ProjectData, error) {
 		if len(row) > 17 {
 			val := strings.ToLower(row[17])
 			req.Condition.Deleted = val == "true" || val == "1" || val == "yes"
+		}
+		if len(gateIdx) > 0 {
+			req.Condition.GateResults = map[string]bool{}
+			for idx, gid := range gateIdx {
+				if len(row) > idx {
+					val := strings.ToLower(row[idx])
+					req.Condition.GateResults[gid] = val == "true" || val == "1" || val == "yes"
+				}
+			}
 		}
 		pd.Requirements = append(pd.Requirements, req)
 	}

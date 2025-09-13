@@ -86,6 +86,7 @@ classDiagram
         +bool AIanalyzed
         +bool Active
         +bool Deleted
+        +map[string]bool GateResults
     }
 
     class Intelligence {

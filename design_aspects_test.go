@@ -140,5 +140,8 @@ func TestDesignAspectEvaluateDesignGates(t *testing.T) {
 		if len(da.Templates[i].GateResults) != 1 || !da.Templates[i].GateResults[0].Pass {
 			t.Fatalf("gate results not stored: %#v", da.Templates[i].GateResults)
 		}
+		if len(da.Templates[i].Condition.GateResults) != 1 || !da.Templates[i].Condition.GateResults["clarity-form-1"] {
+			t.Fatalf("condition gate results not stored: %#v", da.Templates[i].Condition.GateResults)
+		}
 	}
 }
