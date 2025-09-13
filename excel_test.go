@@ -50,6 +50,44 @@ func TestExportRequirementsConditionColumns(t *testing.T) {
 	}
 }
 
+func TestExportRequirementsGateColumns(t *testing.T) {
+	prj := &ProjectType{D: ProjectData{Requirements: []Requirement{{
+		ID:        1,
+		Name:      "Req",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Condition: ConditionType{GateResults: map[string]bool{"clarity-form-1": true}},
+	}}}}
+
+	tmp, err := os.CreateTemp("", "gate-*.xlsx")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	tmp.Close()
+	defer os.Remove(tmp.Name())
+
+	if err := prj.ExportExcel(tmp.Name()); err != nil {
+		t.Fatalf("ExportExcel: %v", err)
+	}
+
+	f, err := excelize.OpenFile(tmp.Name())
+	if err != nil {
+		t.Fatalf("OpenFile: %v", err)
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows("Requirements")
+	if err != nil {
+		t.Fatalf("GetRows: %v", err)
+	}
+	if len(rows) < 2 || len(rows[0]) < 19 || rows[0][18] != "Gate:clarity-form-1" {
+		t.Fatalf("expected gate column, got %v", rows)
+	}
+	if !strings.EqualFold(rows[1][18], "true") {
+		t.Fatalf("expected gate result true, got %v", rows[1][18])
+	}
+}
+
 func TestImportRequirements(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
@@ -64,11 +102,11 @@ func TestImportRequirements(t *testing.T) {
 	f.SetSheetName("Sheet1", "Project")
 
 	f.NewSheet("Requirements")
-	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted"}
+	reqHeader := []interface{}{"ID", "Name", "Description", "Priority", "Level", "User", "Status", "CreatedAt", "UpdatedAt", "ParentID", "AttachmentIndex", "Category", "Tags", "Proposed", "AIgenerated", "AIanalyzed", "Active", "Deleted", "Gate:clarity-form-1"}
 	if err := f.SetSheetRow("Requirements", "A1", &reqHeader); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
-	row := []interface{}{1, "Req", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true", "false", "false", "false", "false"}
+	row := []interface{}{1, "Req", "desc", 1, 1, "u", "Status", time.Now().Format(time.RFC3339), time.Now().Format(time.RFC3339), 0, 0, "Cat", "tag", "true", "false", "false", "false", "false", "true"}
 	if err := f.SetSheetRow("Requirements", "A2", &row); err != nil {
 		t.Fatalf("SetSheetRow: %v", err)
 	}
@@ -91,7 +129,7 @@ func TestImportRequirements(t *testing.T) {
 	if len(pd.Requirements) != 1 {
 		t.Fatalf("expected one requirement, got %d", len(pd.Requirements))
 	}
-	if !pd.Requirements[0].Condition.Proposed {
+	if !pd.Requirements[0].Condition.Proposed || !pd.Requirements[0].Condition.GateResults["clarity-form-1"] {
 		t.Fatalf("condition not imported: %#v", pd.Requirements[0].Condition)
 	}
 }

@@ -71,6 +71,8 @@ flowchart TD
   export.
 - **Deleted** – requirement has been removed from active consideration but is
   retained for history and ignored by processing.
+- **GateResults** – map of quality gate IDs to pass/fail outcomes for the
+  latest evaluation.
 
 ### Typical transitions
 

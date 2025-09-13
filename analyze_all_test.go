@@ -64,6 +64,9 @@ func TestAnalyzeAll(t *testing.T) {
 	if len(prj.D.Requirements[2].GateResults) != 1 {
 		t.Fatalf("expected gate results for third requirement")
 	}
+	if !prj.D.Requirements[0].Condition.GateResults["completeness-1"] || !prj.D.Requirements[2].Condition.GateResults["completeness-1"] {
+		t.Fatalf("condition gate results not stored")
+	}
 	if len(prj.D.Requirements[3].GateResults) != 0 {
 		t.Fatalf("proposed requirement should be skipped")
 	}
@@ -88,6 +91,9 @@ func TestAnalyzeAll(t *testing.T) {
 	}
 	if len(prjReload.D.Requirements[2].GateResults) != 1 {
 		t.Fatalf("gate results for third requirement not persisted")
+	}
+	if !prjReload.D.Requirements[0].Condition.GateResults["completeness-1"] || !prjReload.D.Requirements[2].Condition.GateResults["completeness-1"] {
+		t.Fatalf("persisted condition gate results missing")
 	}
 	if len(prjReload.D.Requirements[3].GateResults) != 0 {
 		t.Fatalf("proposed requirement should not have persisted results")

@@ -156,11 +156,12 @@ type ProjectData struct {
 
 // ConditionType represents the state of a requirement.
 type ConditionType struct {
-	Proposed    bool `json:"proposed" toml:"proposed"`
-	AIgenerated bool `json:"aigenerated" toml:"aigenerated"`
-	AIanalyzed  bool `json:"aianalyzed" toml:"aianalyzed"`
-	Active      bool `json:"active" toml:"active"`
-	Deleted     bool `json:"deleted" toml:"deleted"`
+	Proposed    bool            `json:"proposed" toml:"proposed"`
+	AIgenerated bool            `json:"aigenerated" toml:"aigenerated"`
+	AIanalyzed  bool            `json:"aianalyzed" toml:"aianalyzed"`
+	Active      bool            `json:"active" toml:"active"`
+	Deleted     bool            `json:"deleted" toml:"deleted"`
+	GateResults map[string]bool `json:"gates,omitempty" toml:"gates"`
 }
 
 // Requirement represents a confirmed requirement with detailed metadata.
@@ -234,6 +235,12 @@ func (r *Requirement) EvaluateGates(gateIDs []string) error {
 		return err
 	}
 	r.GateResults = res
+	if r.Condition.GateResults == nil {
+		r.Condition.GateResults = make(map[string]bool, len(res))
+	}
+	for _, gr := range res {
+		r.Condition.GateResults[gr.Gate.ID] = gr.Pass
+	}
 	return nil
 }
 
