@@ -90,9 +90,11 @@ async function loadRequirements(){
   const reqsDiv = document.getElementById('reqs');
   reqsDiv.innerHTML = '';
   data.requirements.forEach(r => {
+    const name = r.name || r.description || `Requirement ${r.id}`;
+
     const opt = document.createElement('option');
     opt.value = r.id;
-    opt.textContent = r.name || r.description || `Requirement ${r.id}`;
+    opt.textContent = name + (r.condition && r.condition.aianalyzed ? ' (analyzed)' : '');
     sel.appendChild(opt);
 
     const div = document.createElement('div');
@@ -108,10 +110,43 @@ async function loadRequirements(){
     };
     div.appendChild(checkbox);
     const label = document.createElement('span');
-    label.textContent = r.name || r.description || `Requirement ${r.id}`;
+    label.textContent = name + (r.condition && r.condition.aianalyzed ? ' (analyzed)' : '');
     div.appendChild(label);
+
+    const analyzeBtn = document.createElement('button');
+    analyzeBtn.textContent = 'Analyze';
+    const result = document.createElement('span');
+    result.style.marginLeft = '10px';
+    analyzeBtn.onclick = async () => {
+      await analyzeRequirement(r.id, result, label);
+    };
+    div.appendChild(analyzeBtn);
+    div.appendChild(result);
     reqsDiv.appendChild(div);
   });
+}
+
+async function analyzeRequirement(rid, resultEl, labelEl){
+  const res = await fetch(`/requirements/${rid}/analyze`, {method:'POST', headers:{'X-Role':'editor'}});
+  if(res.ok){
+    const data = await res.json();
+    resultEl.textContent = `${data.pass ? 'Pass' : 'Fail'}: ${data.answer}`;
+    if(!labelEl.textContent.includes('(analyzed)')){
+      labelEl.textContent += ' (analyzed)';
+    }
+    const sel = document.getElementById('requirements');
+    for(const opt of sel.options){
+      if(opt.value == rid){
+        if(!opt.textContent.includes('(analyzed)')){
+          opt.textContent += ' (analyzed)';
+        }
+        break;
+      }
+    }
+  } else {
+    const msg = await res.text();
+    resultEl.textContent = `Error: ${msg}`;
+  }
 }
 
 async function uploadAttachment(){
