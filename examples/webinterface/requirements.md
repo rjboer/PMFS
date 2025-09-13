@@ -2,6 +2,7 @@
 
 
 This document captures the requirements for the web interface example.
+- The software focusses on a native golang experience (no gorilla or other framework, when possible)
 
 ## Retrieve Project Structure
 - The interface must expose an endpoint `GET /projects/:prid/struct`.
@@ -29,7 +30,7 @@ This document captures the requirements for the web interface example.
   - `page` and `page_size` to paginate large requirement lists.
 
 ## Real-time Updates
-- Provide `GET /projects/:prid/struct/subscribe` using WebSockets or Server-Sent Events.
+- Provide `GET /projects/:prid/struct/subscribe` using Server-Sent Events.
 - Clients update the DOM when notified of changes to projects, requirements, or attachments.
 
 ## Access Control
