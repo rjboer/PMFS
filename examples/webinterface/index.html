@@ -24,7 +24,7 @@
   <select id="requirements"></select>
   <input type="file" id="fileInput" />
   <button onclick="uploadAttachment()">Upload</button>
-  <pre id="reqs"></pre>
+  <div id="reqs"></div>
 </section>
 
 <script>
@@ -61,14 +61,14 @@ async function loadProjects(){
     sel.value = data[0].id;
     await loadRequirements();
   } else {
-    document.getElementById('reqs').textContent = '';
+  document.getElementById('reqs').innerHTML = '';
   }
 }
 
 async function loadRequirements(){
   const pid = document.getElementById('projects').value;
   if(!pid){
-    document.getElementById('reqs').textContent = '';
+    document.getElementById('reqs').innerHTML = '';
     document.getElementById('requirements').innerHTML = '';
     return;
   }
@@ -76,13 +76,31 @@ async function loadRequirements(){
   const data = await res.json();
   const sel = document.getElementById('requirements');
   sel.innerHTML = '';
+  const reqsDiv = document.getElementById('reqs');
+  reqsDiv.innerHTML = '';
   data.requirements.forEach(r => {
     const opt = document.createElement('option');
     opt.value = r.id;
     opt.textContent = r.name || r.description || `Requirement ${r.id}`;
     sel.appendChild(opt);
+
+    const div = document.createElement('div');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = r.condition && r.condition.active;
+    checkbox.onchange = async () => {
+      await fetch(`/projects/${pid}/requirements/${r.id}/active`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json', 'X-Role': 'editor'},
+        body: JSON.stringify({active: checkbox.checked})
+      });
+    };
+    div.appendChild(checkbox);
+    const label = document.createElement('span');
+    label.textContent = r.name || r.description || `Requirement ${r.id}`;
+    div.appendChild(label);
+    reqsDiv.appendChild(div);
   });
-  document.getElementById('reqs').textContent = JSON.stringify({requirements: data.requirements, attachments: data.attachments}, null, 2);
 }
 
 async function uploadAttachment(){
