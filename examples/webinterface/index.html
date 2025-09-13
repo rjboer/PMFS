@@ -100,11 +100,18 @@ async function loadRequirements(){
     checkbox.type = 'checkbox';
     checkbox.checked = r.condition && r.condition.active;
     checkbox.onchange = async () => {
-      await fetch(`/projects/${pid}/requirements/${r.id}/active`, {
+      const res = await fetch(`/projects/${pid}/requirements/${r.id}/active`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json', 'X-Role': 'editor'},
         body: JSON.stringify({active: checkbox.checked})
       });
+      if(!res.ok){
+        const msg = await res.text();
+        alert(msg);
+        checkbox.checked = !checkbox.checked;
+        return;
+      }
+      await loadRequirements();
     };
     div.appendChild(checkbox);
     const label = document.createElement('span');
