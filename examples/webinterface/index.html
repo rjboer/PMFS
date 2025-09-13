@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>PMFS Web Interface Demo</title>
+</head>
+<body>
+<h1>PMFS Web Interface Demo</h1>
+<p>Enter a project ID and click "Load" to fetch the project structure via the API.</p>
+<input id="pid" type="number" placeholder="Project ID" />
+<button onclick="loadStruct()">Load</button>
+<pre id="out"></pre>
+<script>
+async function loadStruct(){
+  const pid = document.getElementById('pid').value;
+  const res = await fetch(`/projects/${pid}/struct`, {headers:{'X-Role':'viewer'}});
+  const data = await res.json();
+  document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>
