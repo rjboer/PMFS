@@ -672,27 +672,31 @@ func (s *server) handleRequirementsForProject(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if len(segs) == 2 && segs[1] == "active" {
-		if r.Method != http.MethodPut {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		var body struct {
-			Active bool `json:"active"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		req.Condition.Active = body.Active
-		if err := prj.Save(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		s.notifySubscribers(prj.ID)
-		respondJSON(w, req)
+		s.handleRequirementActive(w, r, prj, req)
 		return
 	}
 	http.NotFound(w, r)
+}
+
+func (s *server) handleRequirementActive(w http.ResponseWriter, r *http.Request, prj *PMFS.ProjectType, req *PMFS.Requirement) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Active bool `json:"active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Condition.Active = body.Active
+	if err := prj.Save(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.notifySubscribers(prj.ID)
+	respondJSON(w, req)
 }
 
 // --------------------- Requirement-level endpoints --------------------------------
