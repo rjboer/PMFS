@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"encoding/csv"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -26,23 +28,37 @@ type server struct {
 	subs map[int][]chan struct{}
 }
 
+//go:embed index.html
+var staticFS embed.FS
+
 func main() {
-	db, err := PMFS.LoadSetup("webdata")
+	addr := flag.String("addr", ":8080", "listen address")
+	dir := flag.String("dir", "webdata", "data directory")
+	flag.Parse()
+
+	db, err := PMFS.LoadSetup(*dir)
 	if err != nil {
 		log.Fatalf("LoadSetup: %v", err)
 	}
 	s := &server{db: db, subs: make(map[int][]chan struct{})}
 
 	mux := http.NewServeMux()
-	// Static files (index.html) are served from this directory.
-	mux.Handle("/", http.FileServer(http.Dir("examples/webinterface")))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		b, err := staticFS.ReadFile("index.html")
+		if err != nil {
+			http.Error(w, "index not found", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(b)
+	})
 	mux.HandleFunc("/products", s.handleProducts)
 	mux.HandleFunc("/products/", s.handleProducts)
 	mux.HandleFunc("/projects/", s.handleProjects)
 	mux.HandleFunc("/requirements/", s.handleRequirements)
 
-	log.Println("PMFS web interface listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Printf("PMFS web interface listening on %s", *addr)
+	log.Fatal(http.ListenAndServe(*addr, mux))
 }
 
 // roleFromRequest extracts the user's role from the X-Role header.

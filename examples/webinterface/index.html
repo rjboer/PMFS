@@ -2,21 +2,78 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>PMFS Web Interface Demo</title>
+<title>PMFS Web Interface</title>
 </head>
 <body>
-<h1>PMFS Web Interface Demo</h1>
-<p>Enter a project ID and click "Load" to fetch the project structure via the API.</p>
-<input id="pid" type="number" placeholder="Project ID" />
-<button onclick="loadStruct()">Load</button>
-<pre id="out"></pre>
+<h1>PMFS Web Interface</h1>
+
+<section>
+  <h2>Products</h2>
+  <select id="products"></select>
+  <button onclick="loadProducts()">Refresh</button>
+</section>
+
+<section>
+  <h2>Projects</h2>
+  <select id="projects" onchange="loadRequirements()"></select>
+  <button onclick="loadProjects()">Refresh</button>
+</section>
+
+<section>
+  <h2>Requirements</h2>
+  <pre id="reqs"></pre>
+</section>
+
 <script>
-async function loadStruct(){
-  const pid = document.getElementById('pid').value;
+async function loadProducts(){
+  const res = await fetch('/products', {headers:{'X-Role':'viewer'}});
+  const data = await res.json();
+  const sel = document.getElementById('products');
+  sel.innerHTML = '';
+  data.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+  if(data.length){
+    sel.value = data[0].id;
+    await loadProjects();
+  }
+}
+
+async function loadProjects(){
+  const prod = document.getElementById('products').value;
+  const res = await fetch(`/products/${prod}/projects`, {headers:{'X-Role':'viewer'}});
+  const data = await res.json();
+  const sel = document.getElementById('projects');
+  sel.innerHTML = '';
+  data.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+  if(data.length){
+    sel.value = data[0].id;
+    await loadRequirements();
+  } else {
+    document.getElementById('reqs').textContent = '';
+  }
+}
+
+async function loadRequirements(){
+  const pid = document.getElementById('projects').value;
+  if(!pid){
+    document.getElementById('reqs').textContent = '';
+    return;
+  }
   const res = await fetch(`/projects/${pid}/struct`, {headers:{'X-Role':'viewer'}});
   const data = await res.json();
-  document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('reqs').textContent = JSON.stringify(data.requirements, null, 2);
 }
+
+loadProducts();
 </script>
 </body>
 </html>
